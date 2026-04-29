@@ -1,0 +1,592 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  :root {
+    --bg: #faf9f6;
+    --border: #e8e5dd;
+    --text: #2c2a26;
+    --text-dim: #7a766b;
+    --accent: #c1845f;
+    --accent-hover: #b07650;
+    --input-border: #ddd9d0;
+    --pill-bg: #ece9e2;
+    --pill-text: #6d6a62;
+    --pill-active-bg: #d8d3c5;
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 14px rgba(0,0,0,0.08);
+    --code-bg: #f3f1ec;
+  }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: transparent;
+    font-family: -apple-system, system-ui, sans-serif;
+    user-select: none;
+    overflow: hidden;
+    color: var(--text);
+  }
+
+  /* ---------- the dog itself ---------- */
+  #dog {
+    width: 120px; height: 120px;
+    margin: 18px auto 0;
+    border-radius: 14px;
+    -webkit-app-region: drag;
+    cursor: grab;
+    box-shadow: var(--shadow-md);
+    border: 2px solid rgba(0,0,0,0.25);
+    background-size: cover;
+    background-position: center;
+  }
+  #dog.has-icon {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: transparent !important;
+  }
+
+  /* ---------- status pill ---------- */
+  #status-pill {
+    -webkit-app-region: no-drag;
+    margin: 8px auto 0;
+    font-size: 10px;
+    padding: 2px 12px;
+    border-radius: 10px;
+    background: var(--pill-bg);
+    color: var(--pill-text);
+    text-align: center;
+    width: fit-content;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    transition: background 120ms ease;
+  }
+  #status-pill:hover { background: var(--pill-active-bg); }
+  #status-pill.working {
+    background: #e7eef6;
+    color: #4a6d99;
+  }
+
+  /* ---------- speech bubble ---------- */
+  #bubble {
+    -webkit-app-region: no-drag;
+    display: none;
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px 10px;
+    margin: 14px 12px 0;
+    box-shadow: var(--shadow-md);
+    font-size: 12px;
+    color: var(--text);
+  }
+  #bubble.show { display: block; }
+  /* speech tail pointing up to the dog */
+  #bubble::before {
+    content: '';
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 9px solid var(--border);
+  }
+  #bubble::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid var(--bg);
+  }
+
+  /* sections within bubble */
+  .section { display: none; }
+  .section.show { display: block; }
+
+  /* ----- message section ----- */
+  #msg-text {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 90px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  #msg-text.expanded {
+    max-height: 140px;
+    overflow: auto;
+  }
+  .link-btn {
+    -webkit-app-region: no-drag;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 10px;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+  .link-btn:hover { color: var(--text); }
+  #expand-btn { display: none; margin-bottom: 6px; }
+  #message-section { margin-bottom: 8px; }
+
+  /* divider between message and input */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px -14px;
+  }
+
+  /* ----- input section ----- */
+  #reply-input {
+    -webkit-app-region: no-drag;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 12px;
+    resize: none;
+    background: #fff;
+    color: var(--text);
+  }
+  #reply-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  #reply-input:disabled {
+    opacity: 0.5;
+    background: #f7f5f0;
+  }
+  #send-btn {
+    -webkit-app-region: no-drag;
+    margin-top: 6px;
+    padding: 5px 12px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    float: right;
+  }
+  #send-btn:hover:not(:disabled) { background: var(--accent-hover); }
+  #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .input-row::after { content: ''; display: block; clear: both; }
+
+  /* ----- permission section ----- */
+  #title { font-weight: 600; margin-bottom: 4px; font-size: 12px; }
+  #content {
+    display: none;
+    margin: 0 0 8px;
+    padding: 6px 8px;
+    background: var(--code-bg);
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 110px;
+    overflow: auto;
+  }
+  #content.show { display: block; }
+  #prompt-line { margin-bottom: 6px; color: var(--text-dim); font-size: 11px; }
+  .opt {
+    -webkit-app-region: no-drag;
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #fff;
+    color: var(--text);
+  }
+  .opt:hover { background: #f5f3ee; }
+  .opt.allow { border-color: #6aa84f; }
+  .opt.deny  { border-color: #c0392b; }
+  .opt.allow_session { border-color: #4a86e8; }
+  #deny-form { display: none; }
+  #deny-form.show { display: block; }
+  #deny-feedback {
+    -webkit-app-region: no-drag;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid #c0392b;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: -apple-system, system-ui, sans-serif;
+    resize: none;
+    margin-bottom: 6px;
+  }
+  #deny-feedback:focus { outline: none; border-color: #922c20; }
+  .deny-row { display: flex; gap: 6px; }
+  .deny-row button {
+    -webkit-app-region: no-drag;
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #fff;
+  }
+  .deny-row button.send { border-color: #c0392b; background: #fff5f4; font-weight: 600; }
+  .deny-row button:hover { background: #f5f3ee; }
+  #queue-hint {
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: right;
+  }
+  #queue-hint:empty { display: none; }
+
+  /* ----- settings (gear) ----- */
+  #settings-bar {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #settings-toggle {
+    -webkit-app-region: no-drag;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  #settings-toggle:hover { color: var(--text); }
+  #settings-panel {
+    display: none;
+    margin-top: 8px;
+  }
+  #settings-panel.show { display: block; }
+  #settings-meta {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    word-break: break-all;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .icon-row { display: flex; gap: 6px; }
+  .icon-row button {
+    -webkit-app-region: no-drag;
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    font-size: 10px;
+    background: #fff;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .icon-row button:hover { background: #f5f3ee; }
+  #icon-error { color: #c0392b; font-size: 10px; margin-top: 4px; }
+  #icon-error:empty { display: none; }
+</style>
+</head>
+<body>
+  <div id="dog"></div>
+  <div id="status-pill">idle</div>
+
+  <div id="bubble">
+    <!-- Permission section (overrides everything else when active) -->
+    <div id="permission-section" class="section">
+      <div id="title"></div>
+      <pre id="content"></pre>
+      <div id="prompt-line">Do you want to proceed?</div>
+      <div id="options"></div>
+      <div id="deny-form">
+        <textarea id="deny-feedback" rows="3" placeholder="Tell Claude what to do differently (optional)"></textarea>
+        <div class="deny-row">
+          <button id="deny-back">Back</button>
+          <button class="send" id="deny-send">Send</button>
+        </div>
+      </div>
+      <div id="queue-hint"></div>
+    </div>
+
+    <!-- Message section (Claude said something) -->
+    <div id="message-section" class="section">
+      <div id="msg-text"></div>
+      <button id="expand-btn" class="link-btn">expand</button>
+    </div>
+
+    <!-- Input section (always at the bottom) -->
+    <div id="input-section" class="section">
+      <textarea id="reply-input" rows="2" placeholder="ask Claude…"></textarea>
+      <div class="input-row">
+        <button id="send-btn">Send</button>
+      </div>
+    </div>
+
+    <!-- Settings disclosure -->
+    <div id="settings-bar">
+      <button id="settings-toggle" title="settings">⚙</button>
+    </div>
+    <div id="settings-panel">
+      <div id="settings-meta"></div>
+      <div class="icon-row">
+        <button id="btn-upload">Change icon</button>
+        <button id="btn-reset">Use color</button>
+      </div>
+      <div id="icon-error"></div>
+    </div>
+  </div>
+
+<script>
+  const { session } = window.agent;
+
+  const dog = document.getElementById('dog');
+  const statusPill = document.getElementById('status-pill');
+  const bubble = document.getElementById('bubble');
+  const permissionSection = document.getElementById('permission-section');
+  const messageSection = document.getElementById('message-section');
+  const inputSection = document.getElementById('input-section');
+  const msgText = document.getElementById('msg-text');
+  const expandBtn = document.getElementById('expand-btn');
+  const replyInput = document.getElementById('reply-input');
+  const sendBtn = document.getElementById('send-btn');
+  const settingsToggle = document.getElementById('settings-toggle');
+  const settingsPanel = document.getElementById('settings-panel');
+  const settingsMeta = document.getElementById('settings-meta');
+  const btnUpload = document.getElementById('btn-upload');
+  const btnReset = document.getElementById('btn-reset');
+  const iconError = document.getElementById('icon-error');
+
+  // permission section refs
+  const title = document.getElementById('title');
+  const content = document.getElementById('content');
+  const optionsBox = document.getElementById('options');
+  const denyForm = document.getElementById('deny-form');
+  const denyFeedback = document.getElementById('deny-feedback');
+  const denySend = document.getElementById('deny-send');
+  const denyBack = document.getElementById('deny-back');
+  const queueHint = document.getElementById('queue-hint');
+
+  // ---------- pet appearance ----------
+  function paintBackground(iconDataUrl) {
+    if (iconDataUrl) {
+      dog.style.backgroundImage = `url("${iconDataUrl}")`;
+      dog.style.backgroundColor = 'transparent';
+      dog.classList.add('has-icon');
+    } else {
+      dog.style.backgroundImage = 'none';
+      dog.style.backgroundColor = session.color || '#d9a066';
+      dog.classList.remove('has-icon');
+    }
+  }
+  paintBackground(null);
+  dog.title = session.path || session.name || '';
+  settingsMeta.textContent = `${session.path || ''}\nsession ${session.id.slice(0, 6)}`;
+
+  window.agent.getIcon().then((icon) => { if (icon) paintBackground(icon); });
+
+  btnUpload.onclick = async () => {
+    iconError.textContent = '';
+    const result = await window.agent.uploadIcon();
+    if (!result) return;
+    if (result.error) { iconError.textContent = result.error; return; }
+    paintBackground(result.icon);
+  };
+  btnReset.onclick = async () => {
+    iconError.textContent = '';
+    await window.agent.resetIcon();
+    paintBackground(null);
+  };
+
+  // ---------- state ----------
+  let lastMessage = '';
+  let isExpanded = false;
+  const PREVIEW_LEN = 280;
+
+  let currentRequestId = null;
+  let userPinnedOpen = false; // user explicitly opened bubble
+  let userDismissed = false;  // user explicitly hid bubble — reset on new content
+
+  let workingState = false; // true while a task is running
+
+  function rerender() {
+    const hasPermission = currentRequestId !== null;
+    const hasMessage = lastMessage.length > 0;
+    const showBubble = hasPermission || ((hasMessage || userPinnedOpen) && !userDismissed);
+
+    bubble.classList.toggle('show', showBubble);
+    permissionSection.classList.toggle('show', hasPermission);
+    messageSection.classList.toggle('show', !hasPermission && hasMessage);
+    inputSection.classList.toggle('show', !hasPermission);
+
+    // Status pill
+    statusPill.classList.remove('working');
+    if (workingState) {
+      statusPill.textContent = 'thinking…';
+      statusPill.classList.add('working');
+      replyInput.disabled = true;
+      sendBtn.disabled = true;
+    } else {
+      statusPill.textContent = 'idle';
+      replyInput.disabled = false;
+      sendBtn.disabled = false;
+    }
+
+    // Render message text with truncation
+    if (hasMessage) {
+      if (lastMessage.length <= PREVIEW_LEN) {
+        msgText.textContent = lastMessage;
+        msgText.classList.remove('expanded');
+        expandBtn.style.display = 'none';
+      } else if (isExpanded) {
+        msgText.textContent = lastMessage;
+        msgText.classList.add('expanded');
+        expandBtn.style.display = 'inline-block';
+        expandBtn.textContent = 'collapse';
+      } else {
+        msgText.textContent = lastMessage.slice(0, PREVIEW_LEN) + ' …';
+        msgText.classList.remove('expanded');
+        expandBtn.style.display = 'inline-block';
+        expandBtn.textContent = 'expand';
+      }
+    }
+  }
+  rerender();
+
+  expandBtn.onclick = () => {
+    isExpanded = !isExpanded;
+    rerender();
+    if (isExpanded) msgText.scrollTop = 0;
+  };
+
+  // ---------- pill click: toggle bubble ----------
+  statusPill.addEventListener('click', () => {
+    // Don't allow dismissing a pending permission.
+    if (currentRequestId !== null) return;
+    if (bubble.classList.contains('show')) {
+      userDismissed = true;
+      userPinnedOpen = false;
+    } else {
+      userDismissed = false;
+      userPinnedOpen = true;
+    }
+    rerender();
+  });
+
+  // ---------- settings disclosure ----------
+  settingsToggle.onclick = () => {
+    settingsPanel.classList.toggle('show');
+  };
+
+  // ---------- pet event handler ----------
+  window.agent.onPetEvent((event) => {
+    if (event.type === 'status' && event.state === 'working') {
+      workingState = true;
+      rerender();
+    } else if (event.type === 'message') {
+      lastMessage = event.text;
+      isExpanded = false;
+      userDismissed = false; // new content unblocks dismissal
+      workingState = false;
+      rerender();
+    } else if (event.type === 'status' && event.state === 'idle') {
+      if (workingState) workingState = false;
+      rerender();
+    } else if (event.type === 'user-task') {
+      // optimistic: clear old assistant message when a new task starts
+      lastMessage = '';
+      isExpanded = false;
+      rerender();
+    }
+  });
+
+  // ---------- send ----------
+  sendBtn.onclick = () => {
+    const text = replyInput.value.trim();
+    if (!text) return;
+    window.agent.reply(text);
+    replyInput.value = '';
+    lastMessage = '';
+    workingState = true;
+    rerender();
+  };
+  replyInput.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') sendBtn.click();
+  });
+
+  // ---------- permission flow ----------
+  function showOptions() {
+    optionsBox.style.display = 'block';
+    denyForm.classList.remove('show');
+    denyFeedback.value = '';
+  }
+  function showDenyForm() {
+    optionsBox.style.display = 'none';
+    denyForm.classList.add('show');
+    setTimeout(() => denyFeedback.focus(), 0);
+  }
+
+  window.agent.onRequest(({ requestId, message, content: body, options, pendingCount }) => {
+    currentRequestId = requestId;
+    title.textContent = message || 'needs approval';
+    if (body) {
+      content.textContent = body;
+      content.classList.add('show');
+    } else {
+      content.textContent = '';
+      content.classList.remove('show');
+    }
+    optionsBox.innerHTML = '';
+    (options || []).forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.className = `opt ${opt.id}`;
+      btn.textContent = opt.label;
+      if (opt.id === 'deny') {
+        btn.onclick = () => showDenyForm();
+      } else {
+        btn.onclick = () => respond(opt.id);
+      }
+      optionsBox.appendChild(btn);
+    });
+    showOptions();
+    queueHint.textContent = pendingCount > 0 ? `+${pendingCount} more pending` : '';
+    rerender();
+  });
+
+  function respond(choice, feedback) {
+    if (!currentRequestId) return;
+    window.agent.respond(currentRequestId, choice, feedback || '');
+    currentRequestId = null;
+    showOptions();
+    queueHint.textContent = '';
+    rerender();
+  }
+
+  denySend.onclick = () => respond('deny', denyFeedback.value.trim());
+  denyBack.onclick = () => showOptions();
+  denyFeedback.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      respond('deny', denyFeedback.value.trim());
+    }
+  });
+</script>
+</body>
+</html>
