@@ -349,7 +349,7 @@
       <div id="settings-meta"></div>
       <div class="icon-row">
         <button id="btn-upload">Change icon</button>
-        <button id="btn-reset">Use color</button>
+        <button id="btn-reset">Use default</button>
       </div>
       <div id="icon-error"></div>
     </div>
@@ -386,16 +386,12 @@
   const queueHint = document.getElementById('queue-hint');
 
   // ---------- pet appearance ----------
+  const DEFAULT_ICON = 'assets/default-pet.png';
   function paintBackground(iconDataUrl) {
-    if (iconDataUrl) {
-      dog.style.backgroundImage = `url("${iconDataUrl}")`;
-      dog.style.backgroundColor = 'transparent';
-      dog.classList.add('has-icon');
-    } else {
-      dog.style.backgroundImage = 'none';
-      dog.style.backgroundColor = session.color || '#d9a066';
-      dog.classList.remove('has-icon');
-    }
+    const src = iconDataUrl || DEFAULT_ICON;
+    dog.style.backgroundImage = `url("${src}")`;
+    dog.style.backgroundColor = 'transparent';
+    dog.classList.add('has-icon');
   }
   paintBackground(null);
   dog.title = session.path || session.name || '';
