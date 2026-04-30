@@ -1,18 +1,18 @@
 {
   "name": "claude-pets",
-  "version": "0.1.0",
-  "description": "Tiny desktop pets that wrap Claude Code sessions and ask for tool-use approvals",
+  "version": "0.2.0",
+  "description": "Desktop pets that wrap real Claude Code sessions, route permission prompts to a friendly bubble, and let you reply from the pet or the terminal",
   "main": "main.js",
   "bin": {
     "claude-pets": "bin/claude-pets.mjs"
   },
   "scripts": {
     "start": "electron .",
-    "agent": "node agent/index.mjs",
-    "claude-pets": "node bin/claude-pets.mjs"
+    "claude-pets": "node bin/claude-pets.mjs",
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper node_modules/node-pty/prebuilds/darwin-x64/spawn-helper 2>/dev/null || true"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.123"
+    "node-pty": "^1.1.0"
   },
   "devDependencies": {
     "electron": "^33.0.0"
