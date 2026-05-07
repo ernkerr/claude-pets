@@ -29,6 +29,22 @@
   }
 
   /* ---------- the dog itself ---------- */
+  .dog-canvas {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+  }
+  .dog-canvas.has-anim {
+    background-size: calc(var(--frames) * 100%) 100%;
+    background-position-y: 0;
+    animation: sprite-loop var(--loop-duration) steps(var(--loop-len)) infinite;
+  }
+  @keyframes sprite-loop {
+    from { background-position-x: var(--loop-from); }
+    to   { background-position-x: var(--loop-to); }
+  }
+
   #dog {
     width: 120px; height: 120px;
     margin: 18px auto 0;
@@ -37,8 +53,6 @@
     cursor: grab;
     box-shadow: var(--shadow-md);
     border: 2px solid rgba(0,0,0,0.25);
-    background-size: cover;
-    background-position: center;
   }
   #dog.has-icon {
     border: none;
@@ -68,6 +82,10 @@
     background: #e7eef6;
     color: #4a6d99;
   }
+  #status-pill.attention {
+    background: #fdebd0;
+    color: #a85a14;
+  }
 
   /* ---------- speech bubble ---------- */
   #bubble {
@@ -84,7 +102,6 @@
     color: var(--text);
   }
   #bubble.show { display: block; }
-  /* speech tail pointing up to the dog */
   #bubble::before {
     content: '';
     position: absolute;
@@ -106,11 +123,9 @@
     border-bottom: 8px solid var(--bg);
   }
 
-  /* sections within bubble */
   .section { display: none; }
   .section.show { display: block; }
 
-  /* ----- message section ----- */
   #msg-text {
     font-size: 12px;
     line-height: 1.45;
@@ -122,7 +137,7 @@
     margin-bottom: 4px;
   }
   #msg-text.expanded {
-    max-height: 140px;
+    max-height: max(140px, calc(100vh - 320px));
     overflow: auto;
   }
   .link-btn {
@@ -135,18 +150,17 @@
     padding: 0;
     text-decoration: underline;
   }
-  .link-btn:hover { color: var(--text); }
+  .link-btn:hover:not(:disabled) { color: var(--text); }
+  .link-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   #expand-btn { display: none; margin-bottom: 6px; }
   #message-section { margin-bottom: 8px; }
 
-  /* divider between message and input */
   .divider {
     height: 1px;
     background: var(--border);
     margin: 8px -14px;
   }
 
-  /* ----- input section ----- */
   #reply-input {
     -webkit-app-region: no-drag;
     width: 100%;
@@ -160,14 +174,8 @@
     background: #fff;
     color: var(--text);
   }
-  #reply-input:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-  #reply-input:disabled {
-    opacity: 0.5;
-    background: #f7f5f0;
-  }
+  #reply-input:focus { outline: none; border-color: var(--accent); }
+  #reply-input:disabled { opacity: 0.5; background: #f7f5f0; }
   #send-btn {
     -webkit-app-region: no-drag;
     margin-top: 6px;
@@ -185,7 +193,6 @@
   #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .input-row::after { content: ''; display: block; clear: both; }
 
-  /* ----- permission section ----- */
   #title { font-weight: 600; margin-bottom: 4px; font-size: 12px; }
   #content {
     display: none;
@@ -198,7 +205,7 @@
     color: var(--text);
     white-space: pre-wrap;
     word-break: break-all;
-    max-height: 110px;
+    max-height: max(110px, calc(100vh - 360px));
     overflow: auto;
   }
   #content.show { display: block; }
@@ -289,6 +296,35 @@
     word-break: break-all;
     font-family: ui-monospace, Menlo, monospace;
   }
+
+  #pet-picker-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  #pet-picker {
+    -webkit-app-region: no-drag;
+    flex: 1;
+    padding: 3px 4px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    font-size: 11px;
+    background: #fff;
+    color: var(--text);
+  }
+  #btn-new-pet {
+    -webkit-app-region: no-drag;
+    width: 24px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    background: #fff;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1;
+  }
+  #btn-new-pet:hover { background: #f5f3ee; }
+
   .icon-row { display: flex; gap: 6px; }
   .icon-row button {
     -webkit-app-region: no-drag;
@@ -302,16 +338,141 @@
     color: var(--text);
   }
   .icon-row button:hover { background: #f5f3ee; }
+
+  #slots-panel {
+    margin-top: 8px;
+    padding: 8px;
+    background: var(--code-bg);
+    border-radius: 6px;
+  }
+  #slots-panel[hidden] { display: none; }
+  .slots-row { display: flex; gap: 6px; }
+  .slot {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+  }
+  .slot-preview-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+  }
+  .slot-preview {
+    -webkit-app-region: no-drag;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border: 1px dashed var(--input-border);
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--text-dim);
+  }
+  .slot-preview.empty {
+    background-image: repeating-linear-gradient(45deg, #fafaf7, #fafaf7 4px, #ece9e2 4px, #ece9e2 8px);
+  }
+  .slot-preview.empty::before { content: '+'; }
+  .slot-preview:not(.empty) { border-style: solid; }
+  .slot-preview:hover { border-color: var(--accent); }
+  .slot-x {
+    -webkit-app-region: no-drag;
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    font-size: 12px;
+    line-height: 14px;
+    cursor: pointer;
+    display: none;
+    z-index: 1;
+  }
+  .slot-preview-wrap:hover .slot-x.visible { display: block; }
+  .slot-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .slot-anim-btn {
+    font-size: 9px !important;
+    margin-top: 2px;
+  }
+  .slot-anim-btn.active { color: var(--text); font-weight: 600; }
+
+  #shared-anim-panel {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+  }
+  #shared-anim-panel[hidden] { display: none; }
+  .anim-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .anim-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 8px;
+  }
+  .anim-fields label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .anim-fields input {
+    -webkit-app-region: no-drag;
+    width: 50px;
+    padding: 2px 4px;
+    font-size: 10px;
+    border: 1px solid var(--input-border);
+    border-radius: 3px;
+    text-align: right;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .anim-fields input:disabled { opacity: 0.5; background: #f7f5f0; }
+  #anim-note {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  .pet-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
   #icon-error { color: #c0392b; font-size: 10px; margin-top: 4px; }
   #icon-error:empty { display: none; }
 </style>
 </head>
 <body>
-  <div id="dog"></div>
+  <div id="dog" class="dog-canvas"></div>
   <div id="status-pill">idle</div>
 
   <div id="bubble">
-    <!-- Permission section (overrides everything else when active) -->
     <div id="permission-section" class="section">
       <div id="title"></div>
       <pre id="content"></pre>
@@ -327,13 +488,11 @@
       <div id="queue-hint"></div>
     </div>
 
-    <!-- Message section (Claude said something) -->
     <div id="message-section" class="section">
       <div id="msg-text"></div>
       <button id="expand-btn" class="link-btn">expand</button>
     </div>
 
-    <!-- Input section (always at the bottom) -->
     <div id="input-section" class="section">
       <textarea id="reply-input" rows="2" placeholder="ask Claude…"></textarea>
       <div class="input-row">
@@ -341,22 +500,75 @@
       </div>
     </div>
 
-    <!-- Settings disclosure -->
     <div id="settings-bar">
       <button id="settings-toggle" title="settings">⚙</button>
     </div>
     <div id="settings-panel">
       <div id="settings-meta"></div>
+
+      <div id="pet-picker-row">
+        <select id="pet-picker"></select>
+        <button id="btn-new-pet" title="new pet">＋</button>
+      </div>
+
       <div class="icon-row">
-        <button id="btn-upload">Change icon</button>
-        <button id="btn-reset">Use default</button>
+        <button id="btn-change-icon">Change icon</button>
+      </div>
+
+      <div id="slots-panel" hidden>
+        <div class="slots-row">
+          <div class="slot" data-state="idle">
+            <div class="slot-preview-wrap">
+              <div class="slot-preview dog-canvas empty"></div>
+              <button class="slot-x" title="remove">×</button>
+            </div>
+            <div class="slot-label">idle</div>
+            <button class="slot-anim-btn link-btn" disabled>Animation settings</button>
+          </div>
+          <div class="slot" data-state="thinking">
+            <div class="slot-preview-wrap">
+              <div class="slot-preview dog-canvas empty"></div>
+              <button class="slot-x" title="remove">×</button>
+            </div>
+            <div class="slot-label">thinking</div>
+            <button class="slot-anim-btn link-btn" disabled>Animation settings</button>
+          </div>
+          <div class="slot" data-state="responseNeeded">
+            <div class="slot-preview-wrap">
+              <div class="slot-preview dog-canvas empty"></div>
+              <button class="slot-x" title="remove">×</button>
+            </div>
+            <div class="slot-label">response needed</div>
+            <button class="slot-anim-btn link-btn" disabled>Animation settings</button>
+          </div>
+        </div>
+
+        <div id="shared-anim-panel" hidden>
+          <div class="anim-header">
+            <span><b id="anim-state-label">idle</b> animation</span>
+            <button id="anim-close" class="link-btn">close</button>
+          </div>
+          <div class="anim-fields">
+            <label>frames <input type="number" id="anim-frames" min="1" /></label>
+            <label>fps <input type="number" id="anim-fps" min="1" step="0.5" /></label>
+            <label>loop start <input type="number" id="anim-loop-start" min="0" /></label>
+            <label>loop end <input type="number" id="anim-loop-end" min="0" /></label>
+          </div>
+          <div id="anim-note"></div>
+        </div>
+
+        <div class="pet-actions">
+          <button id="btn-rename-pet" class="link-btn">rename</button>
+          <button id="btn-remove-pet" class="link-btn">delete pet</button>
+        </div>
       </div>
       <div id="icon-error"></div>
     </div>
   </div>
 
 <script>
-  const { session } = window.agent;
+  const { session, pets } = window.agent;
+  const STATE_KEYS = ['idle', 'thinking', 'responseNeeded'];
 
   const dog = document.getElementById('dog');
   const statusPill = document.getElementById('status-pill');
@@ -371,11 +583,23 @@
   const settingsToggle = document.getElementById('settings-toggle');
   const settingsPanel = document.getElementById('settings-panel');
   const settingsMeta = document.getElementById('settings-meta');
-  const btnUpload = document.getElementById('btn-upload');
-  const btnReset = document.getElementById('btn-reset');
   const iconError = document.getElementById('icon-error');
 
-  // permission section refs
+  const petPicker = document.getElementById('pet-picker');
+  const btnNewPet = document.getElementById('btn-new-pet');
+  const btnChangeIcon = document.getElementById('btn-change-icon');
+  const slotsPanel = document.getElementById('slots-panel');
+  const sharedAnimPanel = document.getElementById('shared-anim-panel');
+  const animStateLabel = document.getElementById('anim-state-label');
+  const animFrames = document.getElementById('anim-frames');
+  const animFps = document.getElementById('anim-fps');
+  const animLoopStart = document.getElementById('anim-loop-start');
+  const animLoopEnd = document.getElementById('anim-loop-end');
+  const animNote = document.getElementById('anim-note');
+  const animClose = document.getElementById('anim-close');
+  const btnRenamePet = document.getElementById('btn-rename-pet');
+  const btnRemovePet = document.getElementById('btn-remove-pet');
+
   const title = document.getElementById('title');
   const content = document.getElementById('content');
   const optionsBox = document.getElementById('options');
@@ -385,43 +609,238 @@
   const denyBack = document.getElementById('deny-back');
   const queueHint = document.getElementById('queue-hint');
 
-  // ---------- pet appearance ----------
-  const DEFAULT_ICON = 'assets/default-pet.png';
-  function paintBackground(iconDataUrl) {
-    const src = iconDataUrl || DEFAULT_ICON;
-    dog.style.backgroundImage = `url("${src}")`;
-    dog.style.backgroundColor = 'transparent';
-    dog.classList.add('has-icon');
-  }
-  paintBackground(null);
+  dog.classList.add('has-icon');
   dog.title = session.path || session.name || '';
   settingsMeta.textContent = `${session.path || ''}\nsession ${session.id.slice(0, 6)}`;
 
-  window.agent.getIcon().then((icon) => { if (icon) paintBackground(icon); });
+  // ---------- library + active pet ----------
+  let library = { activePetId: null, pets: {} };
+  let editingState = null; // which slot's anim panel is open
 
-  btnUpload.onclick = async () => {
-    iconError.textContent = '';
-    const result = await window.agent.uploadIcon();
-    if (!result) return;
-    if (result.error) { iconError.textContent = result.error; return; }
-    paintBackground(result.icon);
+  function activePet() {
+    return library.pets[library.activePetId] || null;
+  }
+
+  function applySpriteToElement(el, state) {
+    el.style.backgroundImage = state ? `url("${state.url}")` : '';
+    if (state && state.kind === 'sprite-sheet' && state.frames > 1) {
+      const n = Math.max(1, state.frames);
+      const lStart = Math.max(0, Math.min(state.loopStart || 0, n - 1));
+      const lEnd = Math.max(lStart, Math.min(state.loopEnd ?? (n - 1), n - 1));
+      const lLen = lEnd - lStart + 1;
+      const denom = Math.max(1, n - 1);
+      const fps = state.fps > 0 ? state.fps : 12;
+      el.style.setProperty('--frames', String(n));
+      el.style.setProperty('--loop-from', `${(lStart / denom * 100).toFixed(4)}%`);
+      el.style.setProperty('--loop-to', `${((lEnd + 1) / denom * 100).toFixed(4)}%`);
+      el.style.setProperty('--loop-duration', `${(lLen / fps).toFixed(3)}s`);
+      el.style.setProperty('--loop-len', String(lLen));
+      el.classList.add('has-anim');
+    } else {
+      el.classList.remove('has-anim');
+      el.style.removeProperty('--frames');
+      el.style.removeProperty('--loop-from');
+      el.style.removeProperty('--loop-to');
+      el.style.removeProperty('--loop-duration');
+      el.style.removeProperty('--loop-len');
+    }
+  }
+
+  function paintDog(stateForView) {
+    const pet = activePet();
+    if (!pet) return;
+    let state = pet.states[stateForView] || pet.states.idle;
+    if (!state) {
+      const fallback = library.pets['sausage-dog'];
+      state = fallback && fallback.states && fallback.states.idle;
+    }
+    applySpriteToElement(dog, state);
+  }
+
+  function renderPicker() {
+    petPicker.innerHTML = '';
+    for (const id of Object.keys(library.pets)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      const p = library.pets[id];
+      opt.textContent = p.builtin ? `${p.name} (built-in)` : p.name;
+      petPicker.appendChild(opt);
+    }
+    petPicker.value = library.activePetId || '';
+    btnRemovePet.disabled = !!(activePet() && activePet().builtin);
+    btnRenamePet.disabled = !!(activePet() && activePet().builtin);
+  }
+
+  function renderSlots() {
+    const pet = activePet();
+    document.querySelectorAll('#slots-panel .slot').forEach((slot) => {
+      const stateKey = slot.dataset.state;
+      const state = pet && pet.states[stateKey];
+      const preview = slot.querySelector('.slot-preview');
+      const x = slot.querySelector('.slot-x');
+      const animBtn = slot.querySelector('.slot-anim-btn');
+      if (state) {
+        preview.classList.remove('empty');
+        applySpriteToElement(preview, state);
+        x.classList.toggle('visible', !pet.builtin);
+        const animEnabled = !pet.builtin && (state.kind === 'sprite-sheet' || state.kind === 'gif');
+        animBtn.disabled = !animEnabled;
+        animBtn.classList.toggle('active', editingState === stateKey);
+      } else {
+        preview.classList.add('empty');
+        applySpriteToElement(preview, null);
+        x.classList.remove('visible');
+        animBtn.disabled = true;
+        animBtn.classList.remove('active');
+      }
+    });
+    // Re-render animation panel if open
+    if (editingState) {
+      if (!pet || !pet.states[editingState] || pet.builtin) {
+        closeAnimPanel();
+      } else {
+        renderAnimPanel();
+      }
+    }
+  }
+
+  function renderAnimPanel() {
+    const pet = activePet();
+    if (!pet || !editingState || !pet.states[editingState]) return;
+    const s = pet.states[editingState];
+    sharedAnimPanel.hidden = false;
+    animStateLabel.textContent = labelFor(editingState);
+    animFrames.value = s.frames || 1;
+    animFps.value = s.fps || 12;
+    animLoopStart.value = s.loopStart || 0;
+    animLoopEnd.value = s.loopEnd ?? (s.frames - 1);
+    const isGif = s.kind === 'gif';
+    animFrames.disabled = isGif;
+    animFps.disabled = isGif;
+    animLoopStart.disabled = isGif;
+    animLoopEnd.disabled = isGif;
+    animNote.textContent = isGif
+      ? 'GIF timing is baked into the file — settings shown for reference.'
+      : (s.width && s.height ? `source: ${s.width}×${s.height}` : '');
+  }
+
+  function labelFor(stateKey) {
+    return stateKey === 'responseNeeded' ? 'response needed' : stateKey;
+  }
+
+  function closeAnimPanel() {
+    editingState = null;
+    sharedAnimPanel.hidden = true;
+    document.querySelectorAll('.slot-anim-btn').forEach((b) => b.classList.remove('active'));
+  }
+
+  function rerenderLibrary() {
+    renderPicker();
+    renderSlots();
+    paintDog(currentState);
+  }
+
+  // ---------- pet picker / new / rename / delete ----------
+  petPicker.onchange = async () => {
+    const id = petPicker.value;
+    if (!id || id === library.activePetId) return;
+    await pets.select(id);
+    closeAnimPanel();
   };
-  btnReset.onclick = async () => {
-    iconError.textContent = '';
-    await window.agent.resetIcon();
-    paintBackground(null);
+  btnNewPet.onclick = async () => {
+    closeAnimPanel();
+    await pets.create();
+  };
+  btnRenamePet.onclick = async () => {
+    const pet = activePet();
+    if (!pet || pet.builtin) return;
+    const next = prompt('Rename pet:', pet.name);
+    if (next && next.trim()) await pets.rename(pet.id, next.trim());
+  };
+  btnRemovePet.onclick = async () => {
+    const pet = activePet();
+    if (!pet || pet.builtin) return;
+    if (!confirm(`Delete pet "${pet.name}"?`)) return;
+    closeAnimPanel();
+    await pets.remove(pet.id);
   };
 
-  // ---------- state ----------
+  // ---------- change icon disclosure ----------
+  btnChangeIcon.onclick = () => {
+    slotsPanel.hidden = !slotsPanel.hidden;
+    if (slotsPanel.hidden) closeAnimPanel();
+  };
+
+  // ---------- slot upload / remove / anim ----------
+  document.querySelectorAll('#slots-panel .slot').forEach((slot) => {
+    const stateKey = slot.dataset.state;
+    const preview = slot.querySelector('.slot-preview');
+    const x = slot.querySelector('.slot-x');
+    const animBtn = slot.querySelector('.slot-anim-btn');
+
+    preview.onclick = async () => {
+      iconError.textContent = '';
+      const pet = activePet();
+      const targetId = pet ? pet.id : null;
+      const result = await pets.uploadState(targetId, stateKey);
+      if (!result) return;
+      if (result.error) iconError.textContent = result.error;
+    };
+
+    x.onclick = async (e) => {
+      e.stopPropagation();
+      const pet = activePet();
+      if (!pet || pet.builtin) return;
+      await pets.removeState(pet.id, stateKey);
+      if (editingState === stateKey) closeAnimPanel();
+    };
+
+    animBtn.onclick = () => {
+      if (animBtn.disabled) return;
+      if (editingState === stateKey) {
+        closeAnimPanel();
+      } else {
+        editingState = stateKey;
+        renderAnimPanel();
+        renderSlots();
+      }
+    };
+  });
+
+  animClose.onclick = closeAnimPanel;
+
+  function commitAnim() {
+    const pet = activePet();
+    if (!pet || !editingState || pet.builtin) return;
+    const params = {
+      frames: parseInt(animFrames.value, 10) || 1,
+      fps: parseFloat(animFps.value) || 12,
+      loopStart: parseInt(animLoopStart.value, 10) || 0,
+      loopEnd: parseInt(animLoopEnd.value, 10) || 0,
+    };
+    pets.setAnim(pet.id, editingState, params);
+  }
+  [animFrames, animFps, animLoopStart, animLoopEnd].forEach((el) => {
+    el.addEventListener('change', commitAnim);
+  });
+
+  // ---------- state machine ----------
   let lastMessage = '';
   let isExpanded = false;
   const PREVIEW_LEN = 280;
 
   let currentRequestId = null;
-  let userPinnedOpen = false; // user explicitly opened bubble
-  let userDismissed = false;  // user explicitly hid bubble — reset on new content
+  let userPinnedOpen = false;
+  let userDismissed = false;
+  let workingState = false;
+  let currentState = 'idle';
 
-  let workingState = false; // true while a task is running
+  function computeState() {
+    if (currentRequestId !== null) return 'responseNeeded';
+    if (workingState) return 'thinking';
+    if (lastMessage.length > 0 && !userDismissed) return 'responseNeeded';
+    return 'idle';
+  }
 
   function rerender() {
     const hasPermission = currentRequestId !== null;
@@ -433,20 +852,29 @@
     messageSection.classList.toggle('show', !hasPermission && hasMessage);
     inputSection.classList.toggle('show', !hasPermission);
 
-    // Status pill
-    statusPill.classList.remove('working');
-    if (workingState) {
+    const next = computeState();
+    if (next !== currentState) {
+      currentState = next;
+      paintDog(currentState);
+    }
+
+    statusPill.classList.remove('working', 'attention');
+    if (currentState === 'thinking') {
       statusPill.textContent = 'thinking…';
       statusPill.classList.add('working');
       replyInput.disabled = true;
       sendBtn.disabled = true;
+    } else if (currentState === 'responseNeeded') {
+      statusPill.textContent = 'response needed';
+      statusPill.classList.add('attention');
+      replyInput.disabled = false;
+      sendBtn.disabled = false;
     } else {
       statusPill.textContent = 'idle';
       replyInput.disabled = false;
       sendBtn.disabled = false;
     }
 
-    // Render message text with truncation
     if (hasMessage) {
       if (lastMessage.length <= PREVIEW_LEN) {
         msgText.textContent = lastMessage;
@@ -465,7 +893,6 @@
       }
     }
   }
-  rerender();
 
   expandBtn.onclick = () => {
     isExpanded = !isExpanded;
@@ -473,9 +900,7 @@
     if (isExpanded) msgText.scrollTop = 0;
   };
 
-  // ---------- pill click: toggle bubble ----------
   statusPill.addEventListener('click', () => {
-    // Don't allow dismissing a pending permission.
     if (currentRequestId !== null) return;
     if (bubble.classList.contains('show')) {
       userDismissed = true;
@@ -487,12 +912,10 @@
     rerender();
   });
 
-  // ---------- settings disclosure ----------
   settingsToggle.onclick = () => {
     settingsPanel.classList.toggle('show');
   };
 
-  // ---------- pet event handler ----------
   window.agent.onPetEvent((event) => {
     if (event.type === 'status' && event.state === 'working') {
       workingState = true;
@@ -500,21 +923,19 @@
     } else if (event.type === 'message') {
       lastMessage = event.text;
       isExpanded = false;
-      userDismissed = false; // new content unblocks dismissal
+      userDismissed = false;
       workingState = false;
       rerender();
     } else if (event.type === 'status' && event.state === 'idle') {
       if (workingState) workingState = false;
       rerender();
     } else if (event.type === 'user-task') {
-      // optimistic: clear old assistant message when a new task starts
       lastMessage = '';
       isExpanded = false;
       rerender();
     }
   });
 
-  // ---------- send ----------
   sendBtn.onclick = () => {
     const text = replyInput.value.trim();
     if (!text) return;
@@ -528,7 +949,6 @@
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') sendBtn.click();
   });
 
-  // ---------- permission flow ----------
   function showOptions() {
     optionsBox.style.display = 'block';
     denyForm.classList.remove('show');
@@ -582,6 +1002,19 @@
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       respond('deny', denyFeedback.value.trim());
     }
+  });
+
+  // ---------- bootstrap ----------
+  pets.onChanged((next) => {
+    library = next;
+    rerenderLibrary();
+  });
+  pets.list().then((next) => {
+    if (next) {
+      library = next;
+      rerenderLibrary();
+    }
+    rerender();
   });
 </script>
 </body>
