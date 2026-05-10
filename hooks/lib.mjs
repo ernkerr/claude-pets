@@ -29,6 +29,26 @@ export function readStdinJson() {
   }
 }
 
+export function formatToolActivity(toolName, toolInput) {
+  const shortPath = (p) => {
+    if (!p) return '';
+    const parts = p.split('/').filter(Boolean);
+    return parts.length <= 2 ? parts.join('/') : parts.slice(-2).join('/');
+  };
+  const truncate = (s, n = 30) => s.length > n ? s.slice(0, n) + '\u2026' : s;
+
+  switch (toolName) {
+    case 'Read':  return `Reading ${shortPath(toolInput.file_path)}`;
+    case 'Write': return `Writing ${shortPath(toolInput.file_path)}`;
+    case 'Edit':  return `Editing ${shortPath(toolInput.file_path)}`;
+    case 'Bash':  return `Running ${truncate(String(toolInput.command ?? ''))}`;
+    case 'Grep':  return `Searching for '${truncate(String(toolInput.pattern ?? ''), 20)}'`;
+    case 'Glob':  return `Finding ${truncate(String(toolInput.pattern ?? ''), 20)}`;
+    case 'Agent': return 'Delegating to agent';
+    default:      return `Using ${toolName}`;
+  }
+}
+
 export async function postEvent(base, body) {
   try {
     await fetch(`${base}/event`, {

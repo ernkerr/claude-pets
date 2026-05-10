@@ -4,7 +4,7 @@
 // JSON on stdout indicating allow / block.
 
 import { readFileSync } from 'node:fs';
-import { dlog, done } from './lib.mjs';
+import { dlog, done, postEvent, formatToolActivity } from './lib.mjs';
 
 const BASE = process.env.CLAUDE_PETS_BASE;
 dlog('perm', `fired, BASE=${BASE || '(missing)'}`);
@@ -34,6 +34,7 @@ const SAFE_TOOLS = new Set([
 ]);
 if (SAFE_TOOLS.has(toolName)) {
   dlog('perm', `auto-allowing safe tool: ${toolName}`);
+  await postEvent(BASE, { type: 'tool-activity', text: formatToolActivity(toolName, toolInput) });
   done({
     hookSpecificOutput: {
       hookEventName: 'PreToolUse',
@@ -42,16 +43,20 @@ if (SAFE_TOOLS.has(toolName)) {
   });
 }
 
-function summarize() {
+const activityText = formatToolActivity(toolName, toolInput);
+await postEvent(BASE, { type: 'tool-activity', text: activityText });
+
+function detailContent() {
   switch (toolName) {
-    case 'Write': return { title: `Write file`,   content: toolInput.file_path || '' };
-    case 'Edit':  return { title: `Edit file`,    content: toolInput.file_path || '' };
-    case 'Bash':  return { title: `Bash command`, content: String(toolInput.command ?? '') };
-    default:      return { title: `Use tool ${toolName}`, content: '' };
+    case 'Write':
+    case 'Edit':  return toolInput.file_path || '';
+    case 'Bash':  return String(toolInput.command ?? '');
+    default:      return '';
   }
 }
 
-const { title, content } = summarize();
+const title = activityText;
+const content = detailContent();
 const options = [
   { id: 'allow',         label: '1. Yes' },
   { id: 'allow_session', label: '2. Yes, for this session' },

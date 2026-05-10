@@ -10,6 +10,8 @@ const msgText = document.getElementById('msg-text');
 const expandBtn = document.getElementById('expand-btn');
 const replyInput = document.getElementById('reply-input');
 const sendBtn = document.getElementById('send-btn');
+const pillVerboseCheckbox = document.getElementById('pill-verbose');
+const pillPlayfulCheckbox = document.getElementById('pill-playful');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsPanel = document.getElementById('settings-panel');
 const btnUpload = document.getElementById('btn-upload');
@@ -73,6 +75,91 @@ let userPinnedOpen = false; // user explicitly opened bubble
 let userDismissed = false;  // user explicitly hid bubble — reset on new content
 
 let workingState = false; // true while a task is running
+let lastActivity = '';   // latest tool activity text (literal description)
+
+// Phrases borrowed from lil-agents (https://github.com/ryanstephen/lil-agents)
+const THINKING_PHRASES = [
+  'hmm...', 'thinking...', 'one sec...', 'ok hold on',
+  'let me check', 'working on it', 'almost...', 'bear with me',
+  'on it!', 'gimme a sec', 'brb', 'processing...',
+  'hang tight', 'just a moment', 'figuring it out',
+  'crunching...', 'reading...', 'looking...',
+  'cooking...', 'vibing...', 'digging in',
+  'connecting dots', 'give me a sec',
+  "don't rush me", 'calculating...', 'assembling\u2026',
+];
+const COMPLETION_PHRASES = [
+  'done!', 'all set!', 'ready!', 'here you go', 'got it!',
+  'finished!', 'ta-da!', 'voila!',
+  'boom!', 'there ya go!', 'check it out!',
+];
+
+let currentPhrase = '';
+let phraseTimer = null;
+let completionTimer = null;
+let showingCompletion = false;
+
+// Toggles: "thinking out loud" shows activity in pill, "playful" makes it whimsical
+let verbose = localStorage.getItem('pillVerbose') === 'true';
+let playful = localStorage.getItem('pillPlayful') !== 'false'; // default true
+pillVerboseCheckbox.checked = verbose;
+pillPlayfulCheckbox.checked = playful;
+
+function pickPhrase() {
+  let next;
+  do { next = THINKING_PHRASES[Math.floor(Math.random() * THINKING_PHRASES.length)]; }
+  while (next === currentPhrase && THINKING_PHRASES.length > 1);
+  currentPhrase = next;
+}
+
+function startPhraseRotation() {
+  if (phraseTimer) return;
+  pickPhrase();
+  const scheduleNext = () => {
+    phraseTimer = setTimeout(() => {
+      pickPhrase();
+      rerender();
+      scheduleNext();
+    }, 3000 + Math.random() * 2000);
+  };
+  scheduleNext();
+}
+
+function stopPhraseRotation() {
+  if (phraseTimer) { clearTimeout(phraseTimer); phraseTimer = null; }
+}
+
+function showCompletionPhrase() {
+  if (completionTimer) clearTimeout(completionTimer);
+  currentPhrase = COMPLETION_PHRASES[Math.floor(Math.random() * COMPLETION_PHRASES.length)];
+  showingCompletion = true;
+  rerender();
+  completionTimer = setTimeout(() => {
+    showingCompletion = false;
+    completionTimer = null;
+    rerender();
+  }, 3000);
+}
+
+pillVerboseCheckbox.onchange = () => {
+  verbose = pillVerboseCheckbox.checked;
+  localStorage.setItem('pillVerbose', verbose);
+  if (workingState) {
+    if (verbose && playful) startPhraseRotation();
+    else stopPhraseRotation();
+  }
+  rerender();
+};
+
+pillPlayfulCheckbox.onchange = () => {
+  playful = pillPlayfulCheckbox.checked;
+  localStorage.setItem('pillPlayful', playful);
+  if (workingState && verbose) {
+    if (playful) startPhraseRotation();
+    else stopPhraseRotation();
+  }
+  rerender();
+};
 
 function rerender() {
   const hasPermission = currentRequestId !== null;
@@ -85,14 +172,25 @@ function rerender() {
   inputSection.classList.toggle('show', !hasPermission);
 
   // Status pill
-  statusPill.classList.remove('working', 'needs-response');
+  statusPill.classList.remove('working', 'needs-response', 'completion');
   if (hasPermission) {
     statusPill.textContent = 'response needed';
     statusPill.classList.add('needs-response');
     replyInput.disabled = true;
     sendBtn.disabled = true;
+  } else if (showingCompletion && verbose) {
+    statusPill.textContent = currentPhrase;
+    statusPill.classList.add('completion');
+    replyInput.disabled = false;
+    sendBtn.disabled = false;
   } else if (workingState) {
-    statusPill.textContent = 'thinking\u2026';
+    if (verbose && playful) {
+      statusPill.textContent = currentPhrase || 'thinking\u2026';
+    } else if (verbose) {
+      statusPill.textContent = lastActivity || 'thinking\u2026';
+    } else {
+      statusPill.textContent = 'thinking\u2026';
+    }
     statusPill.classList.add('working');
     replyInput.disabled = true;
     sendBtn.disabled = true;
@@ -150,20 +248,33 @@ settingsToggle.onclick = () => {
 window.agent.onPetEvent((event) => {
   if (event.type === 'status' && event.state === 'working') {
     workingState = true;
+    if (verbose && playful) startPhraseRotation();
+    rerender();
+  } else if (event.type === 'tool-activity') {
+    lastActivity = event.text;
+    if (verbose && playful) pickPhrase();
     rerender();
   } else if (event.type === 'message') {
     lastMessage = event.text;
+    lastActivity = '';
     isExpanded = false;
-    userDismissed = false; // new content unblocks dismissal
+    userDismissed = false;
     workingState = false;
-    rerender();
+    stopPhraseRotation();
+    if (verbose) showCompletionPhrase();
   } else if (event.type === 'status' && event.state === 'idle') {
-    if (workingState) workingState = false;
+    lastActivity = '';
+    if (workingState) {
+      workingState = false;
+      stopPhraseRotation();
+    }
     rerender();
   } else if (event.type === 'user-task') {
-    // optimistic: clear old assistant message when a new task starts
     lastMessage = '';
+    lastActivity = '';
     isExpanded = false;
+    if (completionTimer) { clearTimeout(completionTimer); completionTimer = null; }
+    showingCompletion = false;
     rerender();
   }
 });
@@ -176,6 +287,7 @@ sendBtn.onclick = () => {
   replyInput.value = '';
   lastMessage = '';
   workingState = true;
+  if (verbose && playful) startPhraseRotation();
   rerender();
 };
 replyInput.addEventListener('keydown', (e) => {
