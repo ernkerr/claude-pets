@@ -4,6 +4,22 @@ A running log of design and architectural decisions for claude-pets, plus the re
 
 ---
 
+## 2026-05-07 — Per-session "allow this tool" approval
+
+**Context:** Approving every Bash/Edit/Write call gets tedious within a single Claude turn that does many similar operations. Users wanted a "yes, and stop asking for this tool" option without granting blanket permission across sessions.
+
+**Decision:** Add a third permission option `allow_session` shown as "2. Yes, for this session". When chosen, the daemon adds the `toolName` to a per-session `Set` (`session.sessionAllowed`); subsequent `/approve` calls for that tool short-circuit to `allow` without prompting the pet. The Set lives only in memory on the session object, so it's wiped when the terminal exits.
+
+**Why:** Session-scoped (not repo-scoped, not global) matches our broader "one pet = one terminal" model — the trust grant doesn't leak to other terminals or persist across restarts. Keying on `toolName` is coarse but sufficient: granular per-argument allowlists would be brittle and surprising (e.g., "Bash for `ls` allowed" doesn't tell you anything about safety of `rm`).
+
+**Caveat:** Coarse `toolName` granularity means approving Bash once allows *any* Bash for the rest of the session. Acceptable for now since pets are a personal-machine UX layer, not a security boundary — but worth revisiting if the daemon ever runs in a less-trusted context.
+
+**Alternatives considered:**
+- Persist the allowlist to disk per-cwd — rejected; same reasoning as the per-session icon decision below.
+- Argument-level allowlists (e.g., approve `Bash: ls *` vs `Bash: rm *`) — too brittle and noisy to be useful at this scale.
+
+---
+
 ## 2026-05-07 — Stop hook waits for transcript size to stabilize
 
 **Context:** The Stop hook reads the last assistant message from Claude Code's transcript JSONL and posts it to the pet's speech bubble. Previous logic polled `extractLastAssistantText` 8 times × 75ms (600ms total) and broke on the first non-empty result. This raced with Claude's flush — long final messages weren't written to disk in time, so the hook would return an *earlier* assistant text snippet from the same turn instead. Reproduced in this repo: a 614-char summary was lost; the pet displayed a 92-char interstitial line.

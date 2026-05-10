@@ -53,8 +53,9 @@ function summarize() {
 
 const { title, content } = summarize();
 const options = [
-  { id: 'allow', label: '1. Yes' },
-  { id: 'deny',  label: '2. No, and tell Claude what to do differently' },
+  { id: 'allow',         label: '1. Yes' },
+  { id: 'allow_session', label: '2. Yes, for this session' },
+  { id: 'deny',          label: '3. No, and tell Claude what to do differently' },
 ];
 
 let result;
@@ -62,7 +63,7 @@ try {
   const response = await fetch(`${BASE}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: title, content, options }),
+    body: JSON.stringify({ message: title, content, options, toolName }),
   });
   if (!response.ok) {
     // Daemon error — fail open.

@@ -88,6 +88,7 @@ function makeSession({ cwd, name, pid }) {
     inbox: [],
     inboxLastSeq: 0,
     inboxWaiters: [],
+    sessionAllowed: new Set(),
   };
   session.win = createDogWindow(session);
   sessions.set(id, session);
@@ -217,10 +218,16 @@ function startServer() {
           }
 
           if (req.method === 'POST' && subpath === '/approve') {
-            const { message, content, options } = await readJson(req);
+            const { message, content, options, toolName } = await readJson(req);
+            if (toolName && session.sessionAllowed.has(toolName)) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ choice: 'allow' }));
+              return;
+            }
             const requestId = crypto.randomBytes(4).toString('hex');
             session.queue.push({
               requestId,
+              toolName: toolName || '',
               message: message || 'needs approval',
               content: content || '',
               options: Array.isArray(options) && options.length
@@ -310,10 +317,14 @@ function startServer() {
 ipcMain.on('approval:response', (_evt, { sessionId, requestId, choice, feedback }) => {
   const session = sessions.get(sessionId);
   if (!session || !session.current || session.current.requestId !== requestId) return;
-  const { res } = session.current;
+  const { res, toolName } = session.current;
+  if (choice === 'allow_session' && toolName) {
+    session.sessionAllowed.add(toolName);
+  }
+  const effectiveChoice = choice === 'allow_session' ? 'allow' : choice;
   session.current = null;
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ choice, feedback: feedback || '' }));
+  res.end(JSON.stringify({ choice: effectiveChoice, feedback: feedback || '' }));
   deliverNext(session);
 });
 

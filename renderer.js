@@ -74,8 +74,13 @@ function rerender() {
   inputSection.classList.toggle('show', !hasPermission);
 
   // Status pill
-  statusPill.classList.remove('working');
-  if (workingState) {
+  statusPill.classList.remove('working', 'needs-response');
+  if (hasPermission) {
+    statusPill.textContent = 'response needed';
+    statusPill.classList.add('needs-response');
+    replyInput.disabled = true;
+    sendBtn.disabled = true;
+  } else if (workingState) {
     statusPill.textContent = 'thinking\u2026';
     statusPill.classList.add('working');
     replyInput.disabled = true;
@@ -215,6 +220,16 @@ function respond(choice, feedback) {
   queueHint.textContent = '';
   rerender();
 }
+
+// Number keys to select permission options
+document.addEventListener('keydown', (e) => {
+  if (!currentRequestId) return;
+  if (denyForm.classList.contains('show')) return;
+  const idx = parseInt(e.key, 10);
+  if (idx >= 1 && idx <= optionsBox.children.length) {
+    optionsBox.children[idx - 1].click();
+  }
+});
 
 denySend.onclick = () => respond('deny', denyFeedback.value.trim());
 denyBack.onclick = () => showOptions();
