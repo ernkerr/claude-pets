@@ -119,10 +119,48 @@ html, body {
   max-height: 90px;
   overflow: hidden;
   margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 #msg-text.expanded {
   max-height: 140px;
-  overflow: auto;
+  overflow-y: auto;
+  display: block;
+}
+#msg-text > *:first-child { margin-top: 0; }
+#msg-text > *:last-child { margin-bottom: 0; }
+#msg-text p { margin: 0 0 6px; }
+#msg-text h1, #msg-text h2, #msg-text h3,
+#msg-text h4, #msg-text h5, #msg-text h6 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 6px 0 4px;
+}
+#msg-text ul, #msg-text ol { margin: 0 0 6px; padding-left: 18px; }
+#msg-text li { margin: 0; }
+#msg-text code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: rgba(127,127,127,0.18);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+#msg-text pre {
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  background: rgba(127,127,127,0.14);
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre;
+}
+#msg-text pre code { background: none; padding: 0; font-size: 11px; }
+#msg-text a { color: var(--text); text-decoration: underline; }
+#msg-text blockquote {
+  margin: 0 0 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+  color: var(--text-dim);
 }
 .link-btn {
   -webkit-app-region: no-drag;

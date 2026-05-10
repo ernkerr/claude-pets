@@ -57,6 +57,17 @@ let lastMessage = '';
 let isExpanded = false;
 const PREVIEW_LEN = 280;
 
+if (window.marked) {
+  window.marked.setOptions({ breaks: true, gfm: true });
+}
+function renderMarkdown(el, text) {
+  if (window.marked && window.DOMPurify) {
+    el.innerHTML = window.DOMPurify.sanitize(window.marked.parse(text));
+  } else {
+    el.textContent = text;
+  }
+}
+
 let currentRequestId = null;
 let userPinnedOpen = false; // user explicitly opened bubble
 let userDismissed = false;  // user explicitly hid bubble — reset on new content
@@ -93,17 +104,15 @@ function rerender() {
 
   // Render message text with truncation
   if (hasMessage) {
+    renderMarkdown(msgText, lastMessage);
     if (lastMessage.length <= PREVIEW_LEN) {
-      msgText.textContent = lastMessage;
       msgText.classList.remove('expanded');
       expandBtn.style.display = 'none';
     } else if (isExpanded) {
-      msgText.textContent = lastMessage;
       msgText.classList.add('expanded');
       expandBtn.style.display = 'inline-block';
       expandBtn.textContent = 'collapse';
     } else {
-      msgText.textContent = lastMessage.slice(0, PREVIEW_LEN) + ' \u2026';
       msgText.classList.remove('expanded');
       expandBtn.style.display = 'inline-block';
       expandBtn.textContent = 'expand';
@@ -115,7 +124,7 @@ rerender();
 expandBtn.onclick = () => {
   isExpanded = !isExpanded;
   rerender();
-  if (isExpanded) msgText.scrollTop = 0;
+  if (isExpanded) msgText.scrollTop = msgText.scrollHeight;
 };
 
 // ---------- pill click: toggle bubble ----------
