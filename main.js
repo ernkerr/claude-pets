@@ -3,12 +3,21 @@ const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
-const { spawn } = require('child_process');
 
 const PORT = 47777;
 const SWEEP_INTERVAL_MS = 1500;
 const WIN_W = 240;
 const WIN_H = 480;
+const MAX_ICON_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+const MIME_TYPES = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+};
 
 // sessionId -> { id, cwd, name, color, pid, win, queue, current }
 const sessions = new Map();
@@ -21,7 +30,7 @@ function loadConfig() {
   configPath = path.join(app.getPath('userData'), 'pets-config.json');
   try {
     petConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  } catch {
+  } catch { // file may not exist on first launch
     petConfig = {};
   }
 }
@@ -98,8 +107,6 @@ function makeSession({ cwd, name, pid }) {
     pid: typeof pid === 'number' ? pid : null,
     queue: [],
     current: null,
-    taskCount: 0,
-    childAgent: null,
     inbox: [],
     inboxLastSeq: 0,
     inboxWaiters: [],
@@ -107,31 +114,6 @@ function makeSession({ cwd, name, pid }) {
   session.win = createDogWindow(session);
   sessions.set(id, session);
   return session;
-}
-
-function beginTask(session) {
-  const shouldContinue = session.taskCount > 0;
-  session.taskCount += 1;
-  return shouldContinue;
-}
-
-function spawnAgent(session, task) {
-  const agentScript = path.join(__dirname, 'agent', 'index.mjs');
-  const continueFlag = beginTask(session) ? '1' : '';
-  const child = spawn(process.execPath, [agentScript, task], {
-    cwd: session.cwd,
-    env: {
-      ...process.env,
-      CLAUDE_PETS_BASE: `http://127.0.0.1:${PORT}/sessions/${session.id}`,
-      CLAUDE_PETS_CONTINUE: continueFlag,
-    },
-    stdio: ['ignore', 'ignore', 'inherit'],
-  });
-  session.childAgent = child;
-  child.on('exit', () => {
-    if (session.childAgent === child) session.childAgent = null;
-  });
-  return child;
 }
 
 function pushToInbox(session, text) {
@@ -152,7 +134,7 @@ function deliverInbox(waiter, session) {
   try {
     waiter.res.writeHead(200, { 'Content-Type': 'application/json' });
     waiter.res.end(JSON.stringify({ messages, cursor }));
-  } catch {}
+  } catch {} // response may already be closed
 }
 
 function deliverNext(session) {
@@ -175,7 +157,7 @@ function endSession(session, reason) {
     try {
       entry.res.writeHead(503, { 'Content-Type': 'application/json' });
       entry.res.end(JSON.stringify({ choice: 'deny', error: reason || 'session ended' }));
-    } catch {}
+    } catch {} // response may already be closed
   };
   if (session.current) drain(session.current);
   session.queue.forEach(drain);
@@ -189,7 +171,7 @@ function endSession(session, reason) {
     try {
       w.res.writeHead(410, { 'Content-Type': 'application/json' });
       w.res.end(JSON.stringify({ messages: [], cursor: session.inboxLastSeq, ended: true }));
-    } catch {}
+    } catch {} // response may already be closed
   }
   if (session.win && !session.win.isDestroyed()) session.win.close();
   sessions.delete(session.id);
@@ -198,7 +180,7 @@ function endSession(session, reason) {
 function readJson(req) {
   return new Promise((resolve, reject) => {
     let body = '';
-    req.on('data', (c) => (body += c));
+    req.on('data', (chunk) => (body += chunk));
     req.on('end', () => {
       try {
         resolve(body ? JSON.parse(body) : {});
@@ -235,17 +217,17 @@ function startServer() {
           return;
         }
 
-        const m = url.pathname.match(/^\/sessions\/([^/]+)(\/.*)?$/);
-        if (m) {
-          const session = sessions.get(m[1]);
-          const sub = m[2] || '';
+        const pathMatch = url.pathname.match(/^\/sessions\/([^/]+)(\/.*)?$/);
+        if (pathMatch) {
+          const session = sessions.get(pathMatch[1]);
+          const subpath = pathMatch[2] || '';
           if (!session) {
             res.writeHead(404);
             res.end('no session');
             return;
           }
 
-          if (req.method === 'POST' && sub === '/approve') {
+          if (req.method === 'POST' && subpath === '/approve') {
             const { message, content, options } = await readJson(req);
             const requestId = crypto.randomBytes(4).toString('hex');
             session.queue.push({
@@ -264,14 +246,7 @@ function startServer() {
             return;
           }
 
-          if (req.method === 'POST' && sub === '/begin-task') {
-            const shouldContinue = beginTask(session);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ shouldContinue }));
-            return;
-          }
-
-          if (req.method === 'POST' && sub === '/inbox') {
+          if (req.method === 'POST' && subpath === '/inbox') {
             const { text } = await readJson(req);
             const trimmed = String(text || '').trim();
             if (!trimmed) {
@@ -285,7 +260,7 @@ function startServer() {
             return;
           }
 
-          if (req.method === 'GET' && sub === '/inbox') {
+          if (req.method === 'GET' && subpath === '/inbox') {
             const since = parseInt(url.searchParams.get('since') || '0', 10) || 0;
             const timeoutSec = Math.min(60, Math.max(1, parseInt(url.searchParams.get('timeout') || '30', 10) || 30));
             const pending = session.inbox.filter((m) => m.seq > since);
@@ -301,7 +276,7 @@ function startServer() {
               try {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ messages: [], cursor: session.inboxLastSeq }));
-              } catch {}
+              } catch {} // response may already be closed
             }, timeoutSec * 1000);
             req.on('close', () => {
               if (waiter.timer) clearTimeout(waiter.timer);
@@ -312,7 +287,7 @@ function startServer() {
             return;
           }
 
-          if (req.method === 'POST' && sub === '/event') {
+          if (req.method === 'POST' && subpath === '/event') {
             const event = await readJson(req);
             if (session.win && !session.win.isDestroyed()) {
               session.win.webContents.send('pet:event', event);
@@ -322,7 +297,7 @@ function startServer() {
             return;
           }
 
-          if (req.method === 'DELETE' && sub === '') {
+          if (req.method === 'DELETE' && subpath === '') {
             endSession(session, 'session ended');
             res.writeHead(204);
             res.end();
@@ -369,23 +344,21 @@ ipcMain.handle('icon:upload', async (_evt, { sessionId }) => {
   });
   if (result.canceled || !result.filePaths[0]) return null;
   const filePath = result.filePaths[0];
+  try {
+    if (fs.statSync(filePath).size > MAX_ICON_SIZE_BYTES) {
+      return { error: 'image is over 5 MB — pick something smaller' };
+    }
+  } catch (e) {
+    return { error: `could not read file: ${e.message}` };
+  }
   let buf;
   try {
     buf = fs.readFileSync(filePath);
   } catch (e) {
     return { error: `could not read file: ${e.message}` };
   }
-  if (buf.length > 5 * 1024 * 1024) {
-    return { error: 'image is over 5 MB — pick something smaller' };
-  }
   const ext = path.extname(filePath).slice(1).toLowerCase();
-  const mime =
-    ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-    : ext === 'png' ? 'image/png'
-    : ext === 'gif' ? 'image/gif'
-    : ext === 'webp' ? 'image/webp'
-    : ext === 'svg' ? 'image/svg+xml'
-    : 'application/octet-stream';
+  const mime = MIME_TYPES[ext] || 'application/octet-stream';
   const dataUrl = `data:${mime};base64,${buf.toString('base64')}`;
   petConfig[session.cwd] = { ...(petConfig[session.cwd] || {}), icon: dataUrl };
   saveConfig();

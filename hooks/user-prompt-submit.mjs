@@ -4,41 +4,16 @@
 // the same claude process). Tells the pet to clear the previous message and
 // flip the pill to "thinking…".
 
-import { readFileSync, appendFileSync } from 'node:fs';
-
-const LOG = '/tmp/claude-pets-hooks.log';
-const dlog = (msg) => {
-  try { appendFileSync(LOG, `[${new Date().toISOString()}] [submit] ${msg}\n`); } catch {}
-};
-
-function done() {
-  process.stdout.write(JSON.stringify({}));
-  process.exit(0);
-}
+import { dlog, done, readStdinJson, postEvent } from './lib.mjs';
 
 const BASE = process.env.CLAUDE_PETS_BASE;
-dlog(`fired, BASE=${BASE || '(missing)'}`);
+dlog('submit', `fired, BASE=${BASE || '(missing)'}`);
 if (!BASE) done();
 
-let event = {};
-try {
-  const raw = readFileSync(0, 'utf8');
-  event = raw ? JSON.parse(raw) : {};
-} catch {}
-
+const event = readStdinJson();
 const promptText = typeof event.prompt === 'string' ? event.prompt : '';
 
-async function postEvent(body) {
-  try {
-    await fetch(`${BASE}/event`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-  } catch {}
-}
-
-await postEvent({ type: 'user-task', text: promptText });
-await postEvent({ type: 'status', state: 'working' });
+await postEvent(BASE, { type: 'user-task', text: promptText });
+await postEvent(BASE, { type: 'status', state: 'working' });
 
 done();
