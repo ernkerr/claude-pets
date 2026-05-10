@@ -25,15 +25,19 @@ html, body {
 
 /* ---------- the dog itself ---------- */
 #dog {
-  width: 120px; height: 120px;
-  margin: 18px auto 0;
+  max-width: 140px;
+  margin: 10px auto 0;
   border-radius: 14px;
   -webkit-app-region: drag;
   cursor: grab;
   box-shadow: var(--shadow-md);
   border: 2px solid rgba(0,0,0,0.25);
-  background-size: cover;
-  background-position: center;
+  overflow: hidden;
+}
+#dog-img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 #dog.has-icon {
   border: none;
@@ -266,10 +270,15 @@ html, body {
   background: none;
   border: none;
   color: var(--text-dim);
-  font-size: 14px;
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+}
+#settings-toggle svg {
+  width: 20px;
+  height: 20px;
 }
 #settings-toggle:hover { color: var(--text); }
 #settings-panel {
@@ -277,13 +286,6 @@ html, body {
   margin-top: 8px;
 }
 #settings-panel.show { display: block; }
-#settings-meta {
-  font-size: 10px;
-  color: var(--text-dim);
-  margin-bottom: 6px;
-  word-break: break-all;
-  font-family: ui-monospace, Menlo, monospace;
-}
 .icon-row { display: flex; gap: 6px; }
 .icon-row button {
   -webkit-app-region: no-drag;

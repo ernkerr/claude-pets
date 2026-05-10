@@ -12,7 +12,6 @@ const replyInput = document.getElementById('reply-input');
 const sendBtn = document.getElementById('send-btn');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsPanel = document.getElementById('settings-panel');
-const settingsMeta = document.getElementById('settings-meta');
 const btnUpload = document.getElementById('btn-upload');
 const btnReset = document.getElementById('btn-reset');
 const iconError = document.getElementById('icon-error');
@@ -29,15 +28,14 @@ const queueHint = document.getElementById('queue-hint');
 
 // ---------- pet appearance ----------
 const DEFAULT_ICON = 'assets/default-pet.png';
+const dogImg = document.getElementById('dog-img');
 function paintBackground(iconDataUrl) {
   const src = iconDataUrl || DEFAULT_ICON;
-  dog.style.backgroundImage = `url("${src}")`;
-  dog.style.backgroundColor = 'transparent';
+  dogImg.src = src;
   dog.classList.add('has-icon');
 }
 paintBackground(null);
 dog.title = session.path || session.name || '';
-settingsMeta.textContent = `${session.path || ''}\nsession ${session.id.slice(0, 6)}`;
 
 window.agent.getIcon().then((icon) => { if (icon) paintBackground(icon); });
 

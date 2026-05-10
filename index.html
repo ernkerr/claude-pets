@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <link rel="stylesheet" href="styles.css" />
+<script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-  <div id="dog"></div>
+  <div id="dog"><img id="dog-img" src="assets/default-pet.png" /></div>
   <div id="status-pill">idle</div>
 
   <div id="bubble">
@@ -41,10 +42,9 @@
 
     <!-- Settings disclosure -->
     <div id="settings-bar">
-      <button id="settings-toggle" title="settings">&#x2699;</button>
+      <button id="settings-toggle" title="settings"><i data-lucide="settings"></i></button>
     </div>
     <div id="settings-panel">
-      <div id="settings-meta"></div>
       <div class="icon-row">
         <button id="btn-upload">Change icon</button>
         <button id="btn-reset">Use default</button>
@@ -54,5 +54,6 @@
   </div>
 
   <script src="renderer.js"></script>
+<script>lucide.createIcons();</script>
 </body>
 </html>
