@@ -28,4 +28,5 @@ contextBridge.exposeInMainWorld('agent', {
   resetIcon: () => ipcRenderer.invoke('icon:reset', { sessionId: session.id }),
   onPetEvent: (cb) => ipcRenderer.on('pet:event', (_e, payload) => cb(payload)),
   reply: (text) => ipcRenderer.send('pet:reply', { sessionId: session.id, text }),
+  exitSession: () => ipcRenderer.send('session:exit', { sessionId: session.id }),
 });

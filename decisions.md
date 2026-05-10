@@ -4,6 +4,20 @@ A running log of design and architectural decisions for claude-pets, plus the re
 
 ---
 
+## 2026-05-10 — Exit pet via HTTP, not signals
+
+**Context:** "Exit this pet" button needs to tear down the CLI process (which owns the PTY/claude child) in addition to closing the pet window. The original approach sent SIGTERM from the Electron daemon to the CLI's pid, relying on the CLI's signal handler to run async cleanup (`finish()`). This didn't work — the CLI process stayed alive and the terminal kept running even after the pet window closed. Adding a SIGKILL fallback also failed.
+
+**Decision:** Don't use signals. Instead, `session:exit` calls `endSession()` directly, which closes the window and tears down the session (including responding 410 to any pending inbox long-poll). The CLI's inbox loop detects the 404/410 and calls `finish()` itself.
+
+**Why:** Signal delivery to Node processes is unreliable in this context — the CLI is in raw-mode stdin with a PTY child, and async signal handlers that `await` can silently fail to reach `process.exit`. The HTTP channel (inbox long-poll) is already established and proven reliable for CLI ↔ daemon communication. Using it for exit is consistent with the existing architecture.
+
+**Alternatives considered:**
+- SIGTERM + SIGKILL fallback timer — still didn't kill the CLI; signals appear to not be delivered reliably in this process configuration.
+- Dedicated `/exit` endpoint the daemon POSTs to the CLI — unnecessary; the inbox poll already provides a persistent connection to signal through.
+
+---
+
 ## 2026-05-07 — Per-session "allow this tool" approval
 
 **Context:** Approving every Bash/Edit/Write call gets tedious within a single Claude turn that does many similar operations. Users wanted a "yes, and stop asking for this tool" option without granting blanket permission across sessions.

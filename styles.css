@@ -361,3 +361,17 @@ html, body {
 .toggle-row input { margin: 0; cursor: pointer; }
 #icon-error { color: #c0392b; font-size: 10px; margin-top: 4px; }
 #icon-error:empty { display: none; }
+.exit-btn {
+  -webkit-app-region: no-drag;
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 4px 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 5px;
+  font-size: 10px;
+  background: #fff;
+  color: #c0392b;
+  cursor: pointer;
+}
+.exit-btn:hover { background: #fdecea; }

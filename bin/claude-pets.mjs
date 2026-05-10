@@ -48,6 +48,10 @@ let exiting = false;
 const finish = async (code) => {
   if (exiting) return;
   exiting = true;
+  // Hard deadline — if cleanup hangs, force-exit.
+  const failsafe = setTimeout(() => process.exit(code ?? 1), 5000);
+  failsafe.unref();
+  try { ptyProcess?.kill(); } catch {}
   try { await fetch(`${sessionBase}`, { method: 'DELETE' }); } catch {} // best-effort session teardown
   await hooks.uninstall(); // must run after DELETE so this session isn't counted
   process.exit(code ?? 0);
@@ -105,12 +109,12 @@ async function inboxLoop() {
     try {
       const response = await fetch(`${sessionBase}/inbox?since=${since}&timeout=30`);
       if (!response.ok) {
-        if (response.status === 410) return;
+        if (response.status === 404 || response.status === 410) { finish(0); return; }
         await sleep(INBOX_BACKOFF_MS);
         continue;
       }
       body = await response.json();
-      if (body.ended) return;
+      if (body.ended) { finish(0); return; }
     } catch {
       if (exiting) return;
       await sleep(INBOX_BACKOFF_MS);

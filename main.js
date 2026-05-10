@@ -379,6 +379,12 @@ ipcMain.handle('icon:reset', (_evt, { sessionId }) => {
   return true;
 });
 
+ipcMain.on('session:exit', (_evt, { sessionId }) => {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  endSession(session, 'exited from pet settings');
+});
+
 function sweepOrphans() {
   for (const session of [...sessions.values()]) {
     if (!session.pid) continue;
