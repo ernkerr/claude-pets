@@ -19,30 +19,8 @@ const MIME_TYPES = {
   svg: 'image/svg+xml',
 };
 
-// sessionId -> { id, cwd, name, color, pid, win, queue, current }
+// sessionId -> { id, cwd, name, color, pid, win, queue, current, icon }
 const sessions = new Map();
-
-// Persistent per-project config: { [projectCwd]: { icon: dataUrl } }
-let petConfig = {};
-let configPath = '';
-
-function loadConfig() {
-  configPath = path.join(app.getPath('userData'), 'pets-config.json');
-  try {
-    petConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  } catch { // file may not exist on first launch
-    petConfig = {};
-  }
-}
-
-function saveConfig() {
-  try {
-    fs.mkdirSync(path.dirname(configPath), { recursive: true });
-    fs.writeFileSync(configPath, JSON.stringify(petConfig, null, 2));
-  } catch (e) {
-    console.error('claude-pets: failed to save config:', e.message);
-  }
-}
 
 function colorFromName(name) {
   const hash = crypto.createHash('sha1').update(name).digest();
@@ -217,6 +195,17 @@ function startServer() {
           return;
         }
 
+        if (req.method === 'GET' && url.pathname === '/sessions/count') {
+          const cwd = url.searchParams.get('cwd');
+          let count = 0;
+          for (const s of sessions.values()) {
+            if (s.cwd === cwd) count++;
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ count }));
+          return;
+        }
+
         const pathMatch = url.pathname.match(/^\/sessions\/([^/]+)(\/.*)?$/);
         if (pathMatch) {
           const session = sessions.get(pathMatch[1]);
@@ -331,7 +320,7 @@ ipcMain.on('approval:response', (_evt, { sessionId, requestId, choice, feedback 
 ipcMain.handle('icon:get', (_evt, { sessionId }) => {
   const session = sessions.get(sessionId);
   if (!session) return null;
-  return petConfig[session.cwd]?.icon || null;
+  return session.icon || null;
 });
 
 ipcMain.handle('icon:upload', async (_evt, { sessionId }) => {
@@ -360,8 +349,7 @@ ipcMain.handle('icon:upload', async (_evt, { sessionId }) => {
   const ext = path.extname(filePath).slice(1).toLowerCase();
   const mime = MIME_TYPES[ext] || 'application/octet-stream';
   const dataUrl = `data:${mime};base64,${buf.toString('base64')}`;
-  petConfig[session.cwd] = { ...(petConfig[session.cwd] || {}), icon: dataUrl };
-  saveConfig();
+  session.icon = dataUrl;
   return { icon: dataUrl };
 });
 
@@ -376,13 +364,7 @@ ipcMain.on('pet:reply', (_evt, { sessionId, text }) => {
 ipcMain.handle('icon:reset', (_evt, { sessionId }) => {
   const session = sessions.get(sessionId);
   if (!session) return false;
-  if (petConfig[session.cwd]) {
-    delete petConfig[session.cwd].icon;
-    if (Object.keys(petConfig[session.cwd]).length === 0) {
-      delete petConfig[session.cwd];
-    }
-    saveConfig();
-  }
+  session.icon = null;
   return true;
 });
 
@@ -401,7 +383,6 @@ function sweepOrphans() {
 }
 
 app.whenReady().then(() => {
-  loadConfig();
   startServer();
   setInterval(sweepOrphans, SWEEP_INTERVAL_MS);
 });

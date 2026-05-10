@@ -48,8 +48,8 @@ let exiting = false;
 const finish = async (code) => {
   if (exiting) return;
   exiting = true;
-  hooks.uninstall();
   try { await fetch(`${sessionBase}`, { method: 'DELETE' }); } catch {} // best-effort session teardown
+  await hooks.uninstall(); // must run after DELETE so this session isn't counted
   process.exit(code ?? 0);
 };
 
@@ -75,8 +75,8 @@ try {
     env,
   });
 } catch (err) {
-  hooks.uninstall();
   try { await fetch(`${sessionBase}`, { method: 'DELETE' }); } catch {} // best-effort session teardown
+  await hooks.uninstall();
   console.error(`claude-pets: failed to spawn claude (${claudeBin}): ${err.message}`);
   console.error('If this is the first run after npm install, try: chmod +x node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper');
   console.error('Or set CLAUDE_BIN to the full path of your claude binary.');
