@@ -448,6 +448,11 @@ ipcMain.handle('pets:removeState', async (_evt, { petId, stateName }) => {
   return ps.resolvePet(pet);
 });
 
+ipcMain.handle('pets:reorder', async (_evt, { fromId, toId }) => {
+  const ps = await getPetStore();
+  return ps.reorderPet(fromId, toId);
+});
+
 ipcMain.handle('pets:delete', async (_evt, { petId }) => {
   const ps = await getPetStore();
   return ps.deletePet(petId);

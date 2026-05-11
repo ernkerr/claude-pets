@@ -649,7 +649,9 @@ html, body {
   align-items: center;
   justify-content: center;
 }
-.gallery-item:hover { border-color: var(--accent); }
+.gallery-item:hover { border-color: var(--accent); cursor: grab; }
+.gallery-item.dragging { opacity: 0.4; }
+.gallery-item.drag-over { border-color: var(--accent); background: rgba(193, 132, 95, 0.1); }
 .gallery-item.active {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(193, 132, 95, 0.25);

@@ -114,6 +114,7 @@ export function init(state) {
   }
 
   let dragSourceState = null;
+  let dragSourcePetId = null;
 
   function renderStateBoxes() {
     const activePet = currentPets.find((p) => p.id === activePetId);
@@ -222,6 +223,8 @@ export function init(state) {
     currentPets.forEach((pet) => {
       const item = document.createElement('div');
       item.className = 'gallery-item' + (pet.id === activePetId ? ' active' : '');
+      item.draggable = true;
+      item.dataset.petId = pet.id;
 
       const idleSrc = pet.resolvedStates.idle || 'assets/default-pet.png';
       const hoverSrc = pet.resolvedStates.responseNeeded || idleSrc;
@@ -239,6 +242,39 @@ export function init(state) {
       name.className = 'gallery-name';
       name.textContent = pet.name;
       item.appendChild(name);
+
+      // Gallery drag-and-drop to reorder
+      item.ondragstart = (e) => {
+        dragSourcePetId = pet.id;
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/x-pet-id', pet.id);
+      };
+      item.ondragend = () => {
+        item.classList.remove('dragging');
+        dragSourcePetId = null;
+      };
+      item.ondragover = (e) => {
+        if (!dragSourcePetId || dragSourcePetId === pet.id) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        item.classList.add('drag-over');
+      };
+      item.ondragleave = () => {
+        item.classList.remove('drag-over');
+      };
+      item.ondrop = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        item.classList.remove('drag-over');
+        const fromId = e.dataTransfer.getData('text/x-pet-id');
+        if (fromId && fromId !== pet.id) {
+          dragSourcePetId = null;
+          await window.agent.petsReorder(fromId, pet.id);
+          await refresh();
+          resizeToFit();
+        }
+      };
 
       // Double-click name to rename
       name.ondblclick = async (e) => {

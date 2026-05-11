@@ -46,5 +46,6 @@ contextBridge.exposeInMainWorld('agent', {
     ipcRenderer.invoke('pets:removeState', { petId, stateName }),
   petsSwapStates: (petId, fromState, toState) =>
     ipcRenderer.invoke('pets:swapStates', { petId, fromState, toState }),
+  petsReorder: (fromId, toId) => ipcRenderer.invoke('pets:reorder', { fromId, toId }),
   petsDelete: (petId) => ipcRenderer.invoke('pets:delete', { petId }),
 });
