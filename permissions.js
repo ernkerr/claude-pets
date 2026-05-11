@@ -68,11 +68,13 @@ export function init(state) {
     state.currentRequestId = null;
     showOptions();
     queueHint.textContent = '';
+    state.updatePetImage(state.workingState ? 'thinking' : 'idle');
     state.rerender();
   }
 
   window.agent.onRequest(({ requestId, message, content: body, options, pendingCount, diffData, summary }) => {
     state.currentRequestId = requestId;
+    state.updatePetImage('responseNeeded');
     title.textContent = message || 'needs approval';
     if (body) {
       content.textContent = body;

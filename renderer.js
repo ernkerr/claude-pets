@@ -1,9 +1,14 @@
-// Renderer entrypoint: sets up shared state, wires pet icon, boots modules.
+// Renderer entrypoint: sets up shared state, wires pet images, boots modules.
 
 import { init as initBubble } from './bubble.js';
 import { init as initPermissions } from './permissions.js';
+import { init as initEditor } from './pet-editor.js';
 
 const { session } = window.agent;
+
+const DEFAULT_ICON = 'assets/default-pet.png';
+const dog = document.getElementById('dog');
+const dogImg = document.getElementById('dog-img');
 
 // Shared mutable state — modules read/write this, rerender() syncs to DOM.
 const state = {
@@ -18,38 +23,43 @@ const state = {
   verbose: false,
   playful: true,
   rerender: () => {},  // set by bubble.js init
+
+  // Pet image state
+  petImages: { idle: null, thinking: null, responseNeeded: null },
+  currentPetState: 'idle',
+  activePetId: null,
+
+  updatePetImage(stateName) {
+    if (stateName) state.currentPetState = stateName;
+    const src = state.petImages[state.currentPetState]
+      || state.petImages.idle
+      || DEFAULT_ICON;
+    dogImg.src = src;
+  },
 };
 
-// --- pet icon ---
-const DEFAULT_ICON = 'assets/default-pet.png';
-const dog = document.getElementById('dog');
-const dogImg = document.getElementById('dog-img');
-const btnUpload = document.getElementById('btn-upload');
-const btnReset = document.getElementById('btn-reset');
-const iconError = document.getElementById('icon-error');
-
-function paintBackground(iconDataUrl) {
-  dogImg.src = iconDataUrl || DEFAULT_ICON;
-  dog.classList.add('has-icon');
-}
-paintBackground(null);
+// --- load active pet ---
 dog.title = session.path || session.name || '';
 
-window.agent.getIcon().then((icon) => { if (icon) paintBackground(icon); });
+async function loadActivePet() {
+  try {
+    const pet = await window.agent.petsGetActive();
+    if (pet) {
+      state.activePetId = pet.id;
+      state.petImages.idle = pet.resolvedStates.idle || DEFAULT_ICON;
+      state.petImages.thinking = pet.resolvedStates.thinking || null;
+      state.petImages.responseNeeded = pet.resolvedStates.responseNeeded || null;
+      dog.classList.add('has-icon');
+    }
+  } catch {}
+  state.updatePetImage('idle');
+}
+loadActivePet();
 
-btnUpload.onclick = async () => {
-  iconError.textContent = '';
-  const result = await window.agent.uploadIcon();
-  if (!result) return;
-  if (result.error) { iconError.textContent = result.error; return; }
-  paintBackground(result.icon);
-};
-btnReset.onclick = async () => {
-  iconError.textContent = '';
-  await window.agent.resetIcon();
-  paintBackground(null);
-};
+// Expose for pet-editor to call after changes
+state.reloadPet = loadActivePet;
 
 // --- boot modules ---
 initBubble(state);
 initPermissions(state);
+initEditor(state);

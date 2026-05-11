@@ -95,15 +95,19 @@ export function init(state) {
 
   // --- settings ---
   settingsToggle.onclick = () => settingsPanel.classList.toggle('show');
-  document.getElementById('btn-exit').onclick = () => {
-    window.agent.exitSession();
-  };
 
   // --- pet events ---
+  function derivePetState() {
+    if (state.currentRequestId !== null) return 'responseNeeded';
+    if (state.workingState) return 'thinking';
+    return 'idle';
+  }
+
   window.agent.onPetEvent((event) => {
     if (event.type === 'status' && event.state === 'working') {
       state.workingState = true;
       if (state.verbose && state.playful) startPhraseRotation(state);
+      state.updatePetImage(derivePetState());
       state.rerender();
     } else if (event.type === 'tool-activity') {
       state.lastActivity = event.text;
@@ -116,6 +120,7 @@ export function init(state) {
       state.userDismissed = false;
       state.workingState = false;
       stopPhraseRotation();
+      state.updatePetImage(derivePetState());
       if (state.verbose) showCompletionPhrase(state);
       else state.rerender();
     } else if (event.type === 'status' && event.state === 'idle') {
@@ -124,12 +129,14 @@ export function init(state) {
         state.workingState = false;
         stopPhraseRotation();
       }
+      state.updatePetImage(derivePetState());
       state.rerender();
     } else if (event.type === 'user-task') {
       state.lastMessage = '';
       state.lastActivity = '';
       state.isExpanded = false;
       clearCompletionTimer(state);
+      state.updatePetImage('idle');
       state.rerender();
     }
   });
@@ -143,6 +150,7 @@ export function init(state) {
     state.lastMessage = '';
     state.workingState = true;
     if (state.verbose && state.playful) startPhraseRotation(state);
+    state.updatePetImage('thinking');
     state.rerender();
   };
   replyInput.addEventListener('keydown', (e) => {
