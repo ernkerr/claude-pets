@@ -29,7 +29,8 @@ export function init(state) {
   const replyInput = document.getElementById('reply-input');
   const sendBtn = document.getElementById('send-btn');
   const settingsToggle = document.getElementById('settings-toggle');
-  const settingsPanel = document.getElementById('settings-panel');
+  const settingsOverlay = document.getElementById('settings-overlay');
+  const settingsClose = document.getElementById('settings-close');
 
   const PREVIEW_LEN = 280;
 

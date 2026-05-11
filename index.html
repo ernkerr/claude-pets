@@ -45,22 +45,28 @@
       </div>
     </div>
 
-    <!-- Settings disclosure -->
+    <!-- Bottom bar -->
     <div id="settings-bar">
       <button id="settings-toggle" title="settings"><i data-lucide="settings"></i></button>
       <button id="editor-toggle" title="edit pet"><i data-lucide="pencil"></i></button>
     </div>
-    <div id="settings-panel">
-      <label class="toggle-row">
-        <input type="checkbox" id="pill-verbose" />
-        Thinking out loud
-      </label>
-      <label class="toggle-row">
-        <input type="checkbox" id="pill-playful" checked />
-        Playful status
-      </label>
-      <button id="btn-end-session" class="editor-btn editor-btn-danger settings-end-btn"><i data-lucide="log-out"></i> End Session</button>
+  </div>
+
+  <!-- Settings overlay -->
+  <div id="settings-overlay" class="editor-overlay">
+    <div class="editor-header">
+      <span class="editor-title">Settings</span>
+      <button id="settings-close" class="editor-close-btn"><i data-lucide="x"></i></button>
     </div>
+    <label class="toggle-row">
+      <input type="checkbox" id="pill-verbose" />
+      Thinking out loud
+    </label>
+    <label class="toggle-row">
+      <input type="checkbox" id="pill-playful" checked />
+      Playful status
+    </label>
+    <button id="btn-end-session" class="editor-btn editor-btn-danger settings-end-btn"><i data-lucide="log-out"></i> End Session</button>
   </div>
 
   <!-- Pet Editor overlay -->
@@ -97,6 +103,8 @@
           <span class="state-label">Needs response</span>
         </div>
       </div>
+      <button id="btn-contribute-pet" class="editor-btn editor-btn-contribute"><i data-lucide="github"></i> Contribute Pet</button>
+      <div id="contribute-status" class="contribute-status"></div>
     </div>
 
 

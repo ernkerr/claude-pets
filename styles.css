@@ -387,13 +387,8 @@ body::-webkit-scrollbar { display: none; }
   height: 20px;
 }
 #settings-toggle:hover { color: var(--text); }
-#settings-panel {
-  display: none;
-  margin-top: 8px;
-}
-#settings-panel.show { display: block; }
 .settings-end-btn {
-  margin-top: 10px;
+  margin-top: 20px;
   width: 100%;
   font-size: 11px;
   padding: 5px 8px;
@@ -401,10 +396,10 @@ body::-webkit-scrollbar { display: none; }
 .toggle-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-top: 6px;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 10px;
   cursor: pointer;
 }
 .toggle-row input { margin: 0; cursor: pointer; }
