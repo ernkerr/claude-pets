@@ -48,12 +48,9 @@
     <!-- Settings disclosure -->
     <div id="settings-bar">
       <button id="settings-toggle" title="settings"><i data-lucide="settings"></i></button>
+      <button id="editor-toggle" title="edit pet"><i data-lucide="pencil"></i></button>
     </div>
     <div id="settings-panel">
-      <div class="icon-row">
-        <button id="btn-upload">Change icon</button>
-        <button id="btn-reset">Use default</button>
-      </div>
       <label class="toggle-row">
         <input type="checkbox" id="pill-verbose" />
         Thinking out loud
@@ -62,9 +59,58 @@
         <input type="checkbox" id="pill-playful" checked />
         Playful status
       </label>
-      <div id="icon-error"></div>
-      <button id="btn-exit" class="exit-btn">Exit this pet</button>
     </div>
+  </div>
+
+  <!-- Pet Editor overlay -->
+  <div id="pet-editor" class="editor-overlay">
+    <div class="editor-header">
+      <span class="editor-title">Edit Pet</span>
+      <button id="editor-close" class="editor-close-btn"><i data-lucide="x"></i></button>
+    </div>
+
+    <!-- Top-level: 3 action buttons -->
+    <div id="editor-menu" class="editor-actions">
+      <button id="btn-add-pet" class="editor-btn"><i data-lucide="plus"></i> Add Pet</button>
+      <button id="btn-edit-pet" class="editor-btn"><i data-lucide="pencil"></i> Edit Pet</button>
+      <button id="btn-remove-pet" class="editor-btn editor-btn-danger"><i data-lucide="trash-2"></i> Remove Pet</button>
+    </div>
+
+    <!-- State editor (shown when Edit Pet is clicked) -->
+    <div id="state-editor-panel" class="state-editor-panel">
+      <button id="state-editor-back" class="editor-back-btn"><i data-lucide="arrow-left"></i> Back</button>
+      <input id="edit-pet-name" type="text" class="edit-pet-name" placeholder="Pet name" />
+      <div class="state-editor">
+        <div class="state-box" data-state="idle">
+          <img class="state-preview" />
+          <button class="state-remove" title="Remove"><i data-lucide="x"></i></button>
+          <span class="state-label">Idle</span>
+        </div>
+        <div class="state-box" data-state="thinking">
+          <img class="state-preview" />
+          <button class="state-remove" title="Remove"><i data-lucide="x"></i></button>
+          <span class="state-label">Thinking</span>
+        </div>
+        <div class="state-box" data-state="responseNeeded">
+          <img class="state-preview" />
+          <button class="state-remove" title="Remove"><i data-lucide="x"></i></button>
+          <span class="state-label">Needs response</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Name input (shown when adding a pet) -->
+    <div id="pet-name-form" class="pet-name-form">
+      <label class="pet-name-label">Name your pet</label>
+      <input id="pet-name-input" type="text" class="pet-name-input" placeholder="e.g. Buddy" />
+      <div class="pet-name-row">
+        <button id="pet-name-cancel">Cancel</button>
+        <button id="pet-name-submit" class="send">Choose image</button>
+      </div>
+    </div>
+
+    <div class="gallery-label">Gallery</div>
+    <div id="pet-gallery" class="pet-gallery"></div>
   </div>
 
   <script type="module" src="renderer.js"></script>
