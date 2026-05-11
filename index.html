@@ -59,6 +59,7 @@
         <input type="checkbox" id="pill-playful" checked />
         Playful status
       </label>
+      <button id="btn-end-session" class="editor-btn editor-btn-danger settings-end-btn"><i data-lucide="log-out"></i> End Session</button>
     </div>
   </div>
 
@@ -73,7 +74,6 @@
     <div id="editor-menu" class="editor-actions">
       <button id="btn-add-pet" class="editor-btn"><i data-lucide="plus"></i> Add Pet</button>
       <button id="btn-edit-pet" class="editor-btn"><i data-lucide="pencil"></i> Edit Pet</button>
-      <button id="btn-remove-pet" class="editor-btn editor-btn-danger"><i data-lucide="trash-2"></i> Remove Pet</button>
     </div>
 
     <!-- State editor (shown when Edit Pet is clicked) -->
@@ -99,15 +99,6 @@
       </div>
     </div>
 
-    <!-- Name input (shown when adding a pet) -->
-    <div id="pet-name-form" class="pet-name-form">
-      <label class="pet-name-label">Name your pet</label>
-      <input id="pet-name-input" type="text" class="pet-name-input" placeholder="e.g. Buddy" />
-      <div class="pet-name-row">
-        <button id="pet-name-cancel">Cancel</button>
-        <button id="pet-name-submit" class="send">Choose image</button>
-      </div>
-    </div>
 
     <div class="gallery-label">Gallery</div>
     <div id="pet-gallery" class="pet-gallery"></div>

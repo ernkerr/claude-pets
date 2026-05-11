@@ -16,14 +16,10 @@ export function init(state) {
   const editPetName = document.getElementById('edit-pet-name');
   const addBtn = document.getElementById('btn-add-pet');
   const editBtn = document.getElementById('btn-edit-pet');
-  const removeBtn = document.getElementById('btn-remove-pet');
+  const endSessionBtn = document.getElementById('btn-end-session');
   const galleryLabel = overlay.querySelector('.gallery-label');
   const gallery = document.getElementById('pet-gallery');
   const stateBoxes = overlay.querySelectorAll('.state-box');
-  const nameInput = document.getElementById('pet-name-input');
-  const nameForm = document.getElementById('pet-name-form');
-  const nameSubmit = document.getElementById('pet-name-submit');
-  const nameCancel = document.getElementById('pet-name-cancel');
 
   let currentPets = [];
   let activePetId = null;
@@ -41,29 +37,20 @@ export function init(state) {
   function showMenu() {
     editorMenu.classList.add('show');
     statePanel.classList.remove('show');
-    nameForm.classList.remove('show');
     showGallery(true);
   }
 
   function showStateEditor() {
     editorMenu.classList.remove('show');
     statePanel.classList.add('show');
-    nameForm.classList.remove('show');
     showGallery(false);
     const pet = currentPets.find((p) => p.id === activePetId);
     editPetName.value = pet ? pet.name : '';
     renderStateBoxes();
   }
 
-  function showNameForm() {
-    editorMenu.classList.remove('show');
-    nameForm.classList.add('show');
-    showGallery(false);
-    nameInput.value = '';
-    nameInput.focus();
-  }
-
   function open() {
+    window.agent.resizeWindow(280, 800);
     overlay.classList.add('show');
     showMenu();
     refresh();
@@ -72,6 +59,7 @@ export function init(state) {
   function close() {
     overlay.classList.remove('show');
     showMenu();
+    window.agent.resizeWindow(280, 540);
   }
 
   openBtn.onclick = open;
@@ -96,7 +84,7 @@ export function init(state) {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && overlay.classList.contains('show')) {
-      if (statePanel.classList.contains('show') || nameForm.classList.contains('show')) {
+      if (statePanel.classList.contains('show')) {
         showMenu();
       } else {
         close();
@@ -257,25 +245,20 @@ export function init(state) {
     });
   }
 
-  // Add Pet: show name form first, then file dialog
-  addBtn.onclick = () => showNameForm();
-
-  nameSubmit.onclick = async () => {
-    const petName = nameInput.value.trim();
-    const result = await window.agent.petsAdd(petName || undefined);
+  // Add Pet: create empty pet and open state editor immediately
+  addBtn.onclick = async () => {
+    const result = await window.agent.petsAddEmpty();
     if (result && !result.error) {
-      showMenu();
       await refresh();
       await state.reloadPet();
+      showStateEditor();
+      editPetName.focus();
+      editPetName.select();
     }
   };
-  nameCancel.onclick = () => showMenu();
-  nameInput.onkeydown = (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); nameSubmit.click(); }
-  };
 
-  // Remove Pet (exits session)
-  removeBtn.onclick = () => {
+  // End Session (in settings panel)
+  endSessionBtn.onclick = () => {
     window.agent.exitSession();
   };
 }
