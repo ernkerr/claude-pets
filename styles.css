@@ -19,9 +19,12 @@ html, body {
   background: transparent;
   font-family: -apple-system, system-ui, sans-serif;
   user-select: none;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   color: var(--text);
+  scrollbar-width: none;
 }
+body::-webkit-scrollbar { display: none; }
 
 /* ---------- the dog itself ---------- */
 #dog {
@@ -129,11 +132,8 @@ html, body {
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 90px;
-  overflow: hidden;
+  overflow-y: auto;
   margin-bottom: 4px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
 }
 #msg-text.expanded {
   max-height: 140px;
