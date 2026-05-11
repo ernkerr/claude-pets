@@ -55,6 +55,7 @@ function createDogWindow(session) {
     transparent: true,
     resizable: false,
     hasShadow: false,
+    enableLargerThanScreen: true,
     alwaysOnTop: true,
     skipTaskbar: true,
     webPreferences: {
