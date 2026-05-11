@@ -530,6 +530,9 @@ html, body {
   border-color: var(--accent);
   background: #f5f0ea;
 }
+.state-box.dragging {
+  opacity: 0.4;
+}
 .state-box.has-image {
   border-style: solid;
   border-color: var(--border);

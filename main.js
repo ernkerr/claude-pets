@@ -436,6 +436,11 @@ ipcMain.handle('pets:dropState', async (_evt, { petId, stateName, filePath }) =>
   return ps.resolvePet(pet);
 });
 
+ipcMain.handle('pets:swapStates', async (_evt, { petId, fromState, toState }) => {
+  const ps = await getPetStore();
+  return ps.swapStates(petId, fromState, toState);
+});
+
 ipcMain.handle('pets:removeState', async (_evt, { petId, stateName }) => {
   const ps = await getPetStore();
   const pet = ps.removeStateImage(petId, stateName);

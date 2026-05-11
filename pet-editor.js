@@ -38,6 +38,7 @@ export function init(state) {
     editorMenu.classList.add('show');
     statePanel.classList.remove('show');
     showGallery(true);
+    resizeToFit();
   }
 
   function showStateEditor() {
@@ -47,13 +48,24 @@ export function init(state) {
     const pet = currentPets.find((p) => p.id === activePetId);
     editPetName.value = pet ? pet.name : '';
     renderStateBoxes();
+    // header(40) + back btn(30) + name input(35) + state boxes(~220) + padding(30)
+    window.agent.resizeWindow(280, 540);
+  }
+
+  function resizeToFit() {
+    // header(40) + buttons(~90) + gallery label(25) + gallery rows + padding(30)
+    const COLS = 3;
+    const ROW_H = 100; // approx height per gallery row (image + name + gap)
+    const BASE_H = 185; // header + buttons + gallery label + padding
+    const rows = Math.ceil(currentPets.length / COLS);
+    const editorH = BASE_H + rows * ROW_H;
+    window.agent.resizeWindow(280, Math.max(540, editorH));
   }
 
   function open() {
-    window.agent.resizeWindow(280, 800);
     overlay.classList.add('show');
     showMenu();
-    refresh();
+    refresh().then(resizeToFit);
   }
 
   function close() {
@@ -101,6 +113,8 @@ export function init(state) {
     updateDogTitle();
   }
 
+  let dragSourceState = null;
+
   function renderStateBoxes() {
     const activePet = currentPets.find((p) => p.id === activePetId);
     if (!activePet) return;
@@ -115,11 +129,29 @@ export function init(state) {
         preview.src = imgUrl;
         preview.style.display = 'block';
         box.classList.add('has-image');
+        box.draggable = true;
       } else {
         preview.src = '';
         preview.style.display = 'none';
         box.classList.remove('has-image');
+        box.draggable = false;
       }
+
+      // Internal drag start
+      box.ondragstart = (e) => {
+        if (!box.classList.contains('has-image')) {
+          e.preventDefault();
+          return;
+        }
+        dragSourceState = stateName;
+        box.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/x-pet-state', stateName);
+      };
+      box.ondragend = () => {
+        box.classList.remove('dragging');
+        dragSourceState = null;
+      };
 
       // Click to upload via file dialog
       box.onclick = async (e) => {
@@ -141,10 +173,14 @@ export function init(state) {
         }
       };
 
-      // Drag and drop
+      // Drag and drop (internal swap or external file)
       box.ondragover = (e) => {
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
+        if (dragSourceState && dragSourceState !== stateName) {
+          e.dataTransfer.dropEffect = 'move';
+        } else if (!dragSourceState) {
+          e.dataTransfer.dropEffect = 'copy';
+        }
         box.classList.add('drag-over');
       };
       box.ondragleave = () => {
@@ -154,6 +190,20 @@ export function init(state) {
         e.preventDefault();
         e.stopPropagation();
         box.classList.remove('drag-over');
+
+        // Internal swap between state boxes
+        const fromState = e.dataTransfer.getData('text/x-pet-state');
+        if (fromState && fromState !== stateName) {
+          dragSourceState = null;
+          const result = await window.agent.petsSwapStates(activePetId, fromState, stateName);
+          if (result) {
+            await refresh();
+            await state.reloadPet();
+          }
+          return;
+        }
+
+        // External file drop
         const file = e.dataTransfer.files[0];
         if (!file) return;
         const filePath = window.agent.getFilePath(file) || file.path;
