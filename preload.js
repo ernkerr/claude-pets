@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('agent', {
   reply: (text) => ipcRenderer.send('pet:reply', { sessionId: session.id, text }),
   exitSession: () => ipcRenderer.send('session:exit', { sessionId: session.id }),
   resizeWindow: (width, height) => ipcRenderer.send('window:resize', { sessionId: session.id, width, height }),
+  setWindowPosition: (x, y) => ipcRenderer.send('window:set-position', { sessionId: session.id, x, y }),
+  showDiff: (diffData, title) => ipcRenderer.send('diff:show', { sessionId: session.id, diffData, title }),
 
   // Pet store
   petsList: () => ipcRenderer.invoke('pets:list'),

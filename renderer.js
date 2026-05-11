@@ -59,6 +59,32 @@ loadActivePet();
 // Expose for pet-editor to call after changes
 state.reloadPet = loadActivePet;
 
+// --- manual drag (bypasses macOS menu-bar constraint) ---
+dog.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  const startX = e.screenX;
+  const startY = e.screenY;
+  // Ask main process for current window position
+  let winX = 0, winY = 0;
+  // Use screenX/screenY relative to where the click started
+  const onMove = (me) => {
+    const dx = me.screenX - startX;
+    const dy = me.screenY - startY;
+    window.agent.setWindowPosition(winX + dx, winY + dy);
+  };
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+  // Get initial position synchronously via the window's screen offset
+  // screenX/Y of the event minus clientX/Y gives window position
+  winX = e.screenX - e.clientX;
+  winY = e.screenY - e.clientY;
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+});
+
 // --- boot modules ---
 initBubble(state);
 initPermissions(state);

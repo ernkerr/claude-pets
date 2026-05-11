@@ -358,6 +358,51 @@ ipcMain.on('window:resize', (_evt, { sessionId, width, height }) => {
   session.win.setSize(width, height, true);
 });
 
+ipcMain.on('window:set-position', (_evt, { sessionId, x, y }) => {
+  const session = sessions.get(sessionId);
+  if (!session || !session.win || session.win.isDestroyed()) return;
+  session.win.setPosition(Math.round(x), Math.round(y));
+});
+
+ipcMain.on('diff:show', (_evt, { sessionId, diffData, title }) => {
+  const session = sessions.get(sessionId);
+  if (!session || !session.win || session.win.isDestroyed()) return;
+  const parentBounds = session.win.getBounds();
+  const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let body = '';
+  if (diffData.type === 'edit') {
+    if (diffData.oldString) {
+      body += `<div class="label">REMOVING</div><pre class="block remove">${esc(diffData.oldString)}</pre>`;
+    }
+    if (diffData.newString) {
+      const word = diffData.oldString ? 'REPLACING WITH' : 'INSERTING';
+      body += `<div class="label">${word}</div><pre class="block add">${esc(diffData.newString)}</pre>`;
+    }
+  } else if (diffData.type === 'write') {
+    body += `<div class="label">CONTENT</div><pre class="block write">${esc(diffData.writeContent)}</pre>`;
+  }
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+    body { margin:0; padding:16px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; background:#faf9f6; color:#2c2a26; }
+    .title { font-family:-apple-system,system-ui,sans-serif; font-size:13px; font-weight:600; margin-bottom:12px; color:#2c2a26; }
+    .label { font-size:10px; font-weight:600; color:#7a766b; text-transform:uppercase; letter-spacing:0.5px; margin:12px 0 4px; }
+    .label:first-child { margin-top:0; }
+    .block { margin:0 0 8px; padding:10px 12px; border-radius:6px; font-size:13px; line-height:1.5; white-space:pre-wrap; word-break:break-all; border:1px solid #e8e5dd; }
+    .remove { background:#fdecea; color:#922c20; border-color:#f5c6c2; }
+    .add { background:#e6f4ea; color:#1e7e34; border-color:#b7e1c4; }
+    .write { background:#f3f1ec; color:#2c2a26; }
+  </style></head><body><div class="title">${esc(title)}</div>${body}</body></html>`;
+  const diffWin = new BrowserWindow({
+    width: 480,
+    height: 400,
+    x: parentBounds.x - 240,
+    y: parentBounds.y + 40,
+    frame: true,
+    alwaysOnTop: true,
+    webPreferences: { contextIsolation: true },
+  });
+  diffWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+});
+
 // --- Pet store IPC ---
 let petStore = null;
 async function getPetStore() {
