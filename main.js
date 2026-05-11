@@ -6,8 +6,8 @@ const fs = require('fs');
 
 const PORT = 47777;
 const SWEEP_INTERVAL_MS = 1500;
-const WIN_W = 240;
-const WIN_H = 480;
+const WIN_W = 280;
+const WIN_H = 540;
 const MAX_ICON_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 const MIME_TYPES = {
@@ -351,6 +351,12 @@ ipcMain.on('session:exit', (_evt, { sessionId }) => {
   endSession(session, 'exited from pet settings');
 });
 
+ipcMain.on('window:resize', (_evt, { sessionId, width, height }) => {
+  const session = sessions.get(sessionId);
+  if (!session || !session.win || session.win.isDestroyed()) return;
+  session.win.setSize(width, height, true);
+});
+
 // --- Pet store IPC ---
 let petStore = null;
 async function getPetStore() {
@@ -373,29 +379,9 @@ ipcMain.on('pets:setActive', async (_evt, { petId }) => {
   ps.setActivePetId(petId);
 });
 
-ipcMain.handle('pets:add', async (_evt, { sessionId, name: petName }) => {
-  const session = sessions.get(sessionId);
-  if (!session) return null;
-  const result = await dialog.showOpenDialog(session.win, {
-    title: 'Choose an image for your new pet',
-    properties: ['openFile'],
-    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] }],
-  });
-  if (result.canceled || !result.filePaths[0]) return null;
-  const filePath = result.filePaths[0];
-  try {
-    if (fs.statSync(filePath).size > MAX_ICON_SIZE_BYTES) {
-      return { error: 'image is over 5 MB — pick something smaller' };
-    }
-  } catch (e) {
-    return { error: `could not read file: ${e.message}` };
-  }
-  const buf = fs.readFileSync(filePath);
-  const ext = path.extname(filePath).slice(1).toLowerCase();
+ipcMain.handle('pets:addEmpty', async (_evt, { name: petName }) => {
   const ps = await getPetStore();
-  const savedPath = ps.savePetImage(buf, ext);
-  const name = petName || path.basename(filePath, path.extname(filePath));
-  const pet = ps.addPet(name, savedPath);
+  const pet = ps.addPet(petName || 'New Pet', null);
   return ps.resolvePet(pet);
 });
 

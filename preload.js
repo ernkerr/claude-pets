@@ -29,12 +29,13 @@ contextBridge.exposeInMainWorld('agent', {
   onPetEvent: (cb) => ipcRenderer.on('pet:event', (_e, payload) => cb(payload)),
   reply: (text) => ipcRenderer.send('pet:reply', { sessionId: session.id, text }),
   exitSession: () => ipcRenderer.send('session:exit', { sessionId: session.id }),
+  resizeWindow: (width, height) => ipcRenderer.send('window:resize', { sessionId: session.id, width, height }),
 
   // Pet store
   petsList: () => ipcRenderer.invoke('pets:list'),
   petsGetActive: () => ipcRenderer.invoke('pets:getActive'),
   petsSetActive: (petId) => ipcRenderer.send('pets:setActive', { petId }),
-  petsAdd: (name) => ipcRenderer.invoke('pets:add', { sessionId: session.id, name }),
+  petsAddEmpty: (name) => ipcRenderer.invoke('pets:addEmpty', { name }),
   petsRename: (petId, name) => ipcRenderer.invoke('pets:rename', { petId, name }),
   petsUploadState: (petId, stateName) =>
     ipcRenderer.invoke('pets:uploadState', { sessionId: session.id, petId, stateName }),
