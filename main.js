@@ -19,7 +19,7 @@ const MIME_TYPES = {
   svg: 'image/svg+xml',
 };
 
-// sessionId -> { id, cwd, name, color, pid, win, queue, current, icon }
+// sessionId -> { id, cwd, name, color, pid, win, queue, current }
 const sessions = new Map();
 
 function colorFromName(name) {
@@ -332,17 +332,52 @@ ipcMain.on('approval:response', (_evt, { sessionId, requestId, choice, feedback 
   deliverNext(session);
 });
 
-ipcMain.handle('icon:get', (_evt, { sessionId }) => {
+ipcMain.handle('icon:get', () => null);
+ipcMain.handle('icon:upload', () => null);
+
+ipcMain.on('pet:reply', (_evt, { sessionId, text }) => {
   const session = sessions.get(sessionId);
-  if (!session) return null;
-  return session.icon || null;
+  if (!session) return;
+  const trimmed = String(text || '').trim();
+  if (!trimmed) return;
+  pushToInbox(session, trimmed);
 });
 
-ipcMain.handle('icon:upload', async (_evt, { sessionId }) => {
+ipcMain.handle('icon:reset', () => true);
+
+ipcMain.on('session:exit', (_evt, { sessionId }) => {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  endSession(session, 'exited from pet settings');
+});
+
+// --- Pet store IPC ---
+let petStore = null;
+async function getPetStore() {
+  if (!petStore) petStore = await import('./lib/pet-store.mjs');
+  return petStore;
+}
+
+ipcMain.handle('pets:list', async () => {
+  const ps = await getPetStore();
+  return ps.listPetsResolved();
+});
+
+ipcMain.handle('pets:getActive', async () => {
+  const ps = await getPetStore();
+  return ps.getActivePetResolved();
+});
+
+ipcMain.on('pets:setActive', async (_evt, { petId }) => {
+  const ps = await getPetStore();
+  ps.setActivePetId(petId);
+});
+
+ipcMain.handle('pets:add', async (_evt, { sessionId, name: petName }) => {
   const session = sessions.get(sessionId);
   if (!session) return null;
   const result = await dialog.showOpenDialog(session.win, {
-    title: `Pick an icon for ${session.name}`,
+    title: 'Choose an image for your new pet',
     properties: ['openFile'],
     filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] }],
   });
@@ -355,38 +390,76 @@ ipcMain.handle('icon:upload', async (_evt, { sessionId }) => {
   } catch (e) {
     return { error: `could not read file: ${e.message}` };
   }
-  let buf;
+  const buf = fs.readFileSync(filePath);
+  const ext = path.extname(filePath).slice(1).toLowerCase();
+  const ps = await getPetStore();
+  const savedPath = ps.savePetImage(buf, ext);
+  const name = petName || path.basename(filePath, path.extname(filePath));
+  const pet = ps.addPet(name, savedPath);
+  return ps.resolvePet(pet);
+});
+
+ipcMain.handle('pets:rename', async (_evt, { petId, name }) => {
+  const ps = await getPetStore();
+  return ps.renamePet(petId, name);
+});
+
+ipcMain.handle('pets:uploadState', async (_evt, { sessionId, petId, stateName }) => {
+  const session = sessions.get(sessionId);
+  if (!session) return null;
+  const result = await dialog.showOpenDialog(session.win, {
+    title: `Choose image for ${stateName} state`,
+    properties: ['openFile'],
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] }],
+  });
+  if (result.canceled || !result.filePaths[0]) return null;
+  const filePath = result.filePaths[0];
   try {
-    buf = fs.readFileSync(filePath);
+    if (fs.statSync(filePath).size > MAX_ICON_SIZE_BYTES) {
+      return { error: 'image is over 5 MB — pick something smaller' };
+    }
   } catch (e) {
     return { error: `could not read file: ${e.message}` };
   }
+  const buf = fs.readFileSync(filePath);
   const ext = path.extname(filePath).slice(1).toLowerCase();
-  const mime = MIME_TYPES[ext] || 'application/octet-stream';
-  const dataUrl = `data:${mime};base64,${buf.toString('base64')}`;
-  session.icon = dataUrl;
-  return { icon: dataUrl };
+  const ps = await getPetStore();
+  const savedPath = ps.savePetImage(buf, ext);
+  const pet = ps.updatePetState(petId, stateName, savedPath);
+  if (!pet) return null;
+  return ps.resolvePet(pet);
 });
 
-ipcMain.on('pet:reply', (_evt, { sessionId, text }) => {
-  const session = sessions.get(sessionId);
-  if (!session) return;
-  const trimmed = String(text || '').trim();
-  if (!trimmed) return;
-  pushToInbox(session, trimmed);
+ipcMain.handle('pets:dropState', async (_evt, { petId, stateName, filePath }) => {
+  if (!filePath) return null;
+  const ext = path.extname(filePath).slice(1).toLowerCase();
+  const allowed = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+  if (!allowed.includes(ext)) return { error: 'unsupported image format' };
+  try {
+    if (fs.statSync(filePath).size > MAX_ICON_SIZE_BYTES) {
+      return { error: 'image is over 5 MB' };
+    }
+  } catch (e) {
+    return { error: `could not read file: ${e.message}` };
+  }
+  const buf = fs.readFileSync(filePath);
+  const ps = await getPetStore();
+  const savedPath = ps.savePetImage(buf, ext);
+  const pet = ps.updatePetState(petId, stateName, savedPath);
+  if (!pet) return null;
+  return ps.resolvePet(pet);
 });
 
-ipcMain.handle('icon:reset', (_evt, { sessionId }) => {
-  const session = sessions.get(sessionId);
-  if (!session) return false;
-  session.icon = null;
-  return true;
+ipcMain.handle('pets:removeState', async (_evt, { petId, stateName }) => {
+  const ps = await getPetStore();
+  const pet = ps.removeStateImage(petId, stateName);
+  if (!pet) return null;
+  return ps.resolvePet(pet);
 });
 
-ipcMain.on('session:exit', (_evt, { sessionId }) => {
-  const session = sessions.get(sessionId);
-  if (!session) return;
-  endSession(session, 'exited from pet settings');
+ipcMain.handle('pets:delete', async (_evt, { petId }) => {
+  const ps = await getPetStore();
+  return ps.deletePet(petId);
 });
 
 function sweepOrphans() {
