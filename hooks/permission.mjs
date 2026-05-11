@@ -5,6 +5,7 @@
 
 import { readFileSync } from 'node:fs';
 import { dlog, done, postEvent, formatToolActivity } from './lib.mjs';
+import { extractLastAssistantText } from './transcript.mjs';
 
 const BASE = process.env.CLAUDE_PETS_BASE;
 dlog('perm', `fired, BASE=${BASE || '(missing)'}`);
@@ -55,8 +56,36 @@ function detailContent() {
   }
 }
 
+function buildDiffData() {
+  switch (toolName) {
+    case 'Edit':
+      return {
+        type: 'edit',
+        oldString: toolInput.old_string ?? null,
+        newString: toolInput.new_string ?? null,
+      };
+    case 'Write':
+      return { type: 'write', writeContent: toolInput.content ?? null };
+    default:
+      return null;
+  }
+}
+
+// Read Claude's last assistant message from the transcript as a summary.
+const transcriptPath = event.transcript_path || event.transcriptPath || '';
+let summary = '';
+if (transcriptPath) {
+  try {
+    const full = extractLastAssistantText(transcriptPath);
+    if (full) summary = full.length > 120 ? full.slice(0, 117) + '...' : full;
+  } catch {}
+}
+
 const title = activityText;
 const content = detailContent();
+const diffData = buildDiffData();
+dlog('perm', `summary=${summary ? summary.slice(0, 60) : '(empty)'}`);
+dlog('perm', `diffData=${diffData ? diffData.type : '(none)'}`);
 const options = [
   { id: 'allow',         label: '1. Yes' },
   { id: 'allow_session', label: '2. Yes, for this session' },
@@ -68,7 +97,7 @@ try {
   const response = await fetch(`${BASE}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: title, content, options, toolName }),
+    body: JSON.stringify({ message: title, content, options, toolName, diffData, summary }),
   });
   if (!response.ok) {
     // Daemon error — fail open.

@@ -251,6 +251,62 @@ html, body {
   overflow: auto;
 }
 #content.show { display: block; }
+
+/* ----- summary & diff ----- */
+#summary {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+#summary:empty { display: none; }
+
+#diff-toggle {
+  display: none;
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+#diff-toggle.show { display: inline-block; }
+
+#diff-view {
+  display: none;
+  margin: 0 0 8px;
+  max-height: 120px;
+  overflow: auto;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+#diff-view.show { display: block; }
+
+.diff-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 3px 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.diff-block {
+  margin: 0;
+  padding: 4px 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.diff-remove {
+  background: #fdecea;
+  color: #922c20;
+}
+.diff-add {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+.diff-write {
+  background: var(--code-bg);
+  color: var(--text);
+}
+
 #prompt-line { margin-bottom: 6px; color: var(--text-dim); font-size: 11px; }
 .opt {
   -webkit-app-region: no-drag;

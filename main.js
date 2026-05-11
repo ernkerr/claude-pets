@@ -127,6 +127,8 @@ function deliverNext(session) {
       content: next.content,
       options: next.options,
       pendingCount: session.queue.length,
+      diffData: next.diffData || null,
+      summary: next.summary || '',
     });
   }
 }
@@ -218,7 +220,7 @@ function startServer() {
           }
 
           if (req.method === 'POST' && subpath === '/approve') {
-            const { message, content, options, toolName } = await readJson(req);
+            const { message, content, options, toolName, diffData, summary } = await readJson(req);
             if (toolName && session.sessionAllowed.has(toolName)) {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ choice: 'allow' }));
@@ -236,6 +238,8 @@ function startServer() {
                     { id: 'allow', label: '1. Yes' },
                     { id: 'deny', label: '2. No' },
                   ],
+              diffData: diffData || null,
+              summary: summary || '',
               res,
             });
             deliverNext(session);

@@ -1,14 +1,54 @@
 // Permission flow: approval requests, option buttons, deny form, keyboard shortcuts.
 
+function renderDiff(container, diffData) {
+  container.innerHTML = '';
+  if (diffData.type === 'edit') {
+    if (diffData.oldString) {
+      const label = document.createElement('div');
+      label.className = 'diff-label';
+      label.textContent = 'removing';
+      container.appendChild(label);
+      const block = document.createElement('pre');
+      block.className = 'diff-block diff-remove';
+      block.textContent = diffData.oldString;
+      container.appendChild(block);
+    }
+    if (diffData.newString) {
+      const label = document.createElement('div');
+      label.className = 'diff-label';
+      label.textContent = diffData.oldString ? 'replacing with' : 'inserting';
+      container.appendChild(label);
+      const block = document.createElement('pre');
+      block.className = 'diff-block diff-add';
+      block.textContent = diffData.newString;
+      container.appendChild(block);
+    }
+  } else if (diffData.type === 'write') {
+    const label = document.createElement('div');
+    label.className = 'diff-label';
+    label.textContent = 'content';
+    container.appendChild(label);
+    const block = document.createElement('pre');
+    block.className = 'diff-block diff-write';
+    block.textContent = diffData.writeContent;
+    container.appendChild(block);
+  }
+}
+
 export function init(state) {
   const title = document.getElementById('title');
   const content = document.getElementById('content');
+  const summaryEl = document.getElementById('summary');
+  const diffToggle = document.getElementById('diff-toggle');
+  const diffView = document.getElementById('diff-view');
   const optionsBox = document.getElementById('options');
   const denyForm = document.getElementById('deny-form');
   const denyFeedback = document.getElementById('deny-feedback');
   const denySend = document.getElementById('deny-send');
   const denyBack = document.getElementById('deny-back');
   const queueHint = document.getElementById('queue-hint');
+
+  let diffExpanded = false;
 
   function showOptions() {
     optionsBox.style.display = 'block';
@@ -31,7 +71,7 @@ export function init(state) {
     state.rerender();
   }
 
-  window.agent.onRequest(({ requestId, message, content: body, options, pendingCount }) => {
+  window.agent.onRequest(({ requestId, message, content: body, options, pendingCount, diffData, summary }) => {
     state.currentRequestId = requestId;
     title.textContent = message || 'needs approval';
     if (body) {
@@ -41,6 +81,39 @@ export function init(state) {
       content.textContent = '';
       content.classList.remove('show');
     }
+
+    // Summary from Claude's last assistant message
+    summaryEl.textContent = summary || '';
+
+    // Diff toggle + view
+    diffExpanded = false;
+    diffView.innerHTML = '';
+    diffView.classList.remove('show');
+
+    const hasDiff = diffData && (
+      (diffData.type === 'edit' && (diffData.oldString || diffData.newString)) ||
+      (diffData.type === 'write' && diffData.writeContent)
+    );
+
+    if (hasDiff) {
+      diffToggle.classList.add('show');
+      diffToggle.textContent = 'Show Diff';
+      diffToggle.onclick = () => {
+        diffExpanded = !diffExpanded;
+        if (diffExpanded) {
+          diffToggle.textContent = 'Hide Diff';
+          if (!diffView.hasChildNodes()) renderDiff(diffView, diffData);
+          diffView.classList.add('show');
+        } else {
+          diffToggle.textContent = 'Show Diff';
+          diffView.classList.remove('show');
+        }
+      };
+    } else {
+      diffToggle.classList.remove('show');
+      diffToggle.onclick = null;
+    }
+
     optionsBox.innerHTML = '';
     (options || []).forEach((opt) => {
       const btn = document.createElement('button');
