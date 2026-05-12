@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, shell } = require('electron');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
@@ -9,6 +9,33 @@ const SWEEP_INTERVAL_MS = 1500;
 const WIN_W = 280;
 const WIN_H = 540;
 const MAX_ICON_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const WINDOW_SIZES_FILE = path.join(
+  process.env.HOME || process.env.USERPROFILE,
+  '.claude-pets',
+  'window-sizes.json',
+);
+
+function loadWindowSizes() {
+  try {
+    return JSON.parse(fs.readFileSync(WINDOW_SIZES_FILE, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
+
+function loadWindowSize(key, defaults) {
+  const sizes = loadWindowSizes();
+  return sizes[key] || defaults;
+}
+
+function saveWindowSize(key, size) {
+  try {
+    const sizes = loadWindowSizes();
+    sizes[key] = size;
+    fs.mkdirSync(path.dirname(WINDOW_SIZES_FILE), { recursive: true });
+    fs.writeFileSync(WINDOW_SIZES_FILE, JSON.stringify(sizes));
+  } catch {}
+}
 
 const MIME_TYPES = {
   jpg: 'image/jpeg',
@@ -155,6 +182,7 @@ function endSession(session, reason) {
       w.res.end(JSON.stringify({ messages: [], cursor: session.inboxLastSeq, ended: true }));
     } catch {} // response may already be closed
   }
+  if (session.expandWin && !session.expandWin.isDestroyed()) session.expandWin.close();
   if (session.win && !session.win.isDestroyed()) session.win.close();
   sessions.delete(session.id);
 }
@@ -403,6 +431,70 @@ ipcMain.on('diff:show', (_evt, { sessionId, diffData, title }) => {
   diffWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 });
 
+// --- Expand window IPC ---
+
+ipcMain.on('expand:open', (_evt, { sessionId, text }) => {
+  const session = sessions.get(sessionId);
+  if (!session || !session.win || session.win.isDestroyed()) return;
+
+  if (session.expandWin && !session.expandWin.isDestroyed()) {
+    session.expandWin.webContents.send('expand:update', { text });
+    session.expandWin.focus();
+    return;
+  }
+
+  const parentBounds = session.win.getBounds();
+  const { width, height } = loadWindowSize('expand', { width: 520, height: 460 });
+
+  const expandWin = new BrowserWindow({
+    width,
+    height,
+    x: parentBounds.x - Math.round(width / 2),
+    y: parentBounds.y + 40,
+    frame: true,
+    transparent: false,
+    resizable: true,
+    alwaysOnTop: true,
+    title: `${session.name} — message`,
+    webPreferences: {
+      preload: path.join(__dirname, 'expand-preload.js'),
+      contextIsolation: true,
+    },
+  });
+
+  expandWin.setAlwaysOnTop(true, 'floating', 1);
+  session.expandWin = expandWin;
+  expandWin.loadFile('expand.html');
+
+  expandWin.webContents.once('did-finish-load', () => {
+    expandWin.webContents.send('expand:update', { text });
+  });
+
+  expandWin.on('close', () => {
+    const bounds = expandWin.getBounds();
+    saveWindowSize('expand', { width: bounds.width, height: bounds.height });
+  });
+
+  expandWin.on('closed', () => {
+    if (session.expandWin === expandWin) session.expandWin = null;
+    if (session.win && !session.win.isDestroyed()) {
+      session.win.webContents.send('expand:closed');
+    }
+  });
+});
+
+ipcMain.on('expand:update', (_evt, { sessionId, text }) => {
+  const session = sessions.get(sessionId);
+  if (!session || !session.expandWin || session.expandWin.isDestroyed()) return;
+  session.expandWin.webContents.send('expand:update', { text });
+});
+
+ipcMain.on('expand:close', (_evt, { sessionId }) => {
+  const session = sessions.get(sessionId);
+  if (!session || !session.expandWin || session.expandWin.isDestroyed()) return;
+  session.expandWin.close();
+});
+
 // --- Pet store IPC ---
 let petStore = null;
 async function getPetStore() {
@@ -502,6 +594,128 @@ ipcMain.handle('pets:reorder', async (_evt, { fromId, toId }) => {
 ipcMain.handle('pets:delete', async (_evt, { petId }) => {
   const ps = await getPetStore();
   return ps.deletePet(petId);
+});
+
+// --- GitHub contribute IPC ---
+let github = null;
+let authPoller = null;
+
+async function getGitHub() {
+  if (!github) github = await import('./lib/github.mjs');
+  return github;
+}
+
+ipcMain.handle('github:authStatus', async () => {
+  const gh = await getGitHub();
+  const token = gh.loadToken();
+  if (!token) return { authenticated: false };
+  const { valid, username } = await gh.validateToken(token);
+  if (!valid) { gh.clearToken(); return { authenticated: false }; }
+  return { authenticated: true, username };
+});
+
+ipcMain.handle('github:startAuth', async () => {
+  const gh = await getGitHub();
+  const flow = await gh.startDeviceFlow();
+  const poller = gh.pollForToken(flow.deviceCode, flow.interval);
+  authPoller = poller;
+  poller.promise
+    .then(() => { authPoller = null; })
+    .catch(() => { authPoller = null; });
+  return {
+    userCode: flow.userCode,
+    verificationUri: flow.verificationUri,
+  };
+});
+
+ipcMain.on('github:cancelAuth', () => {
+  if (authPoller) { authPoller.cancel(); authPoller = null; }
+});
+
+ipcMain.handle('github:waitForAuth', async () => {
+  if (!authPoller) return { authenticated: false };
+  try {
+    await authPoller.promise;
+    const gh = await getGitHub();
+    const token = gh.loadToken();
+    const user = await gh.getUser(token);
+    return { authenticated: true, username: user.login };
+  } catch {
+    return { authenticated: false };
+  }
+});
+
+ipcMain.handle('pets:contribute', async (_evt, { petId }) => {
+  const gh = await getGitHub();
+  const ps = await getPetStore();
+  const store = ps.loadStore();
+  const pet = store.pets.find((p) => p.id === petId);
+
+  if (!pet) return { success: false, error: 'Pet not found' };
+  if (pet.builtIn) return { success: false, error: 'Cannot contribute built-in pets' };
+  const hasAnyImage = Object.values(pet.states).some(Boolean);
+  if (!hasAnyImage) return { success: false, error: 'Pet needs at least one image' };
+
+  const token = gh.loadToken();
+  if (!token) return { success: false, error: 'Not authenticated' };
+
+  try {
+    const user = await gh.getUser(token);
+    const username = user.login;
+
+    // Fork (idempotent)
+    let forkName;
+    try {
+      forkName = await gh.forkRepo(token);
+    } catch {
+      forkName = `${username}/claude-pets`;
+    }
+
+    // Wait a moment for fork to be ready (GitHub can be slow)
+    await new Promise((r) => setTimeout(r, 2000));
+
+    // Get main branch SHA
+    const sha = await gh.getDefaultBranchSha(forkName, token);
+
+    // Create branch
+    const slug = pet.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'pet';
+    const branchName = `contribute/${slug}-${Date.now().toString(36)}`;
+    await gh.createBranch(forkName, branchName, sha, token);
+
+    // Upload images
+    const manifest = { name: pet.name, author: username, states: {} };
+    const commitMsg = `Add community pet: ${pet.name}`;
+
+    for (const [stateName, imgPath] of Object.entries(pet.states)) {
+      if (!imgPath) continue;
+      const ext = path.extname(imgPath).slice(1).toLowerCase();
+      const destName = stateName === 'responseNeeded' ? `response-needed.${ext}` : `${stateName}.${ext}`;
+      const content = fs.readFileSync(imgPath).toString('base64');
+      const fileDest = `assets/community/${slug}/${destName}`;
+      await gh.uploadFile(forkName, branchName, fileDest, content, commitMsg, token);
+      manifest.states[stateName] = destName;
+    }
+
+    // Upload pet.json
+    const manifestContent = Buffer.from(JSON.stringify(manifest, null, 2)).toString('base64');
+    await gh.uploadFile(forkName, branchName, `assets/community/${slug}/pet.json`, manifestContent, commitMsg, token);
+
+    // Create PR
+    const pr = await gh.createPR(
+      `${username}:${branchName}`,
+      `Add community pet: ${pet.name}`,
+      `Adds a new community pet **"${pet.name}"** with ${Object.keys(manifest.states).length} state(s).\n\nContributed via the claude-pets app.`,
+      token,
+    );
+
+    return { success: true, prUrl: pr.html_url, username };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unknown error' };
+  }
+});
+
+ipcMain.handle('shell:openExternal', (_evt, { url }) => {
+  if (url.startsWith('https://github.com/')) shell.openExternal(url);
 });
 
 function sweepOrphans() {

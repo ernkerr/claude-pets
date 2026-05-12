@@ -29,8 +29,7 @@ export function init(state) {
   const replyInput = document.getElementById('reply-input');
   const sendBtn = document.getElementById('send-btn');
   const settingsToggle = document.getElementById('settings-toggle');
-  const settingsOverlay = document.getElementById('settings-overlay');
-  const settingsClose = document.getElementById('settings-close');
+  const settingsPanel = document.getElementById('settings-panel');
 
   const PREVIEW_LEN = 280;
 
@@ -60,26 +59,32 @@ export function init(state) {
     if (hasMessage) {
       renderMarkdown(msgText, state.lastMessage);
       if (state.lastMessage.length <= PREVIEW_LEN) {
-        msgText.classList.remove('expanded');
         expandBtn.style.display = 'none';
-      } else if (state.isExpanded) {
-        msgText.classList.add('expanded');
-        expandBtn.style.display = 'inline-block';
-        expandBtn.textContent = 'collapse';
       } else {
-        msgText.classList.remove('expanded');
         expandBtn.style.display = 'inline-block';
-        expandBtn.textContent = 'expand';
+        expandBtn.textContent = expandWindowOpen ? 'collapse' : 'expand';
       }
     }
   };
 
-  // --- expand/collapse ---
+  // --- expand/collapse (opens separate window) ---
+  let expandWindowOpen = false;
+
   expandBtn.onclick = () => {
-    state.isExpanded = !state.isExpanded;
+    if (expandWindowOpen) {
+      window.agent.closeExpandWindow();
+      expandWindowOpen = false;
+    } else {
+      window.agent.openExpandWindow(state.lastMessage);
+      expandWindowOpen = true;
+    }
     state.rerender();
-    if (state.isExpanded) msgText.scrollTop = msgText.scrollHeight;
   };
+
+  window.agent.onExpandClosed(() => {
+    expandWindowOpen = false;
+    state.rerender();
+  });
 
   // --- pill click: toggle bubble ---
   statusPill.addEventListener('click', () => {
@@ -117,10 +122,10 @@ export function init(state) {
     } else if (event.type === 'message') {
       state.lastMessage = event.text;
       state.lastActivity = '';
-      state.isExpanded = false;
       state.userDismissed = false;
       state.workingState = false;
       stopPhraseRotation();
+      if (expandWindowOpen) window.agent.updateExpandWindow(event.text);
       state.updatePetImage(derivePetState());
       if (state.verbose) showCompletionPhrase(state);
       else state.rerender();
@@ -135,7 +140,10 @@ export function init(state) {
     } else if (event.type === 'user-task') {
       state.lastMessage = '';
       state.lastActivity = '';
-      state.isExpanded = false;
+      if (expandWindowOpen) {
+        window.agent.closeExpandWindow();
+        expandWindowOpen = false;
+      }
       clearCompletionTimer(state);
       state.updatePetImage('idle');
       state.rerender();

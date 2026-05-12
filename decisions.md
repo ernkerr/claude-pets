@@ -4,6 +4,76 @@ A running log of design and architectural decisions for claude-pets, plus the re
 
 ---
 
+## 2026-05-11 — Permission summary is sent in full; bubble line-clamps and offers expand
+
+**Context:** The pre-tool-use permission hook was hard-truncating Claude's last-assistant-message summary to 117 chars + "..." before sending it to the pet. The bubble showed the resulting fragment with no way to recover the full text — for non-trivial tool calls (e.g. TaskCreate with a multi-sentence rationale), the user had to approve/deny based on a half-sentence.
+
+**Decision:** The hook now sends the full summary. The bubble's `#summary` element line-clamps to 4 lines via `-webkit-line-clamp`, and an "expand" link button appears whenever the rendered summary overflows (detected via `scrollHeight > clientHeight`). Clicking it opens the existing expand BrowserWindow with the full summary text — same window/IPC the message section already uses.
+
+**Why:** Truncating at the hook layer threw away information that the bubble layer can present better. CSS clamping keeps the bubble compact while preserving the full text for users who need it. Reusing the expand window avoids duplicate window infra and gives the same resize/persistence behavior already established for messages. Overflow-based detection (rather than a char-count threshold) handles edge cases where short text happens to wrap onto many lines and long text fits on few.
+
+**Alternatives considered:**
+- Keep truncation in hook, raise the limit — kicks the problem down the road; long summaries still get cut.
+- Inline expand (e.g. tall scrollable summary in the bubble) — fights the small-bubble design intent already established for messages and diffs.
+- Always show the expand button when summary is non-empty — visual clutter for the common case where the summary already fits.
+
+---
+
+## 2026-05-11 — Expand message in a separate resizable window
+
+**Context:** The "expand" button on long messages toggled between 90px and 140px max-height inline — barely useful in the 280px-wide pet bubble. Users wanted to actually read long messages comfortably.
+
+**Decision:** "Expand" now opens a separate framed, resizable BrowserWindow that shows the full message with markdown rendering. The window size is persisted to `~/.claude-pets/expand-window.json` and restored on the next expand. The window receives live updates when new messages arrive and auto-closes when the user starts a new task or the session ends.
+
+**Why:** Same reasoning as the diff viewer popup — the pet bubble is intentionally small and trying to show long content inline is a bad UX tradeoff. A separate window lets the user size it to their preference. Unlike the diff viewer (which uses a fire-and-forget `data:` URL), the expand window needs a real HTML file + preload for live IPC updates as messages change. Size is saved on close only to avoid thrashing the filesystem during drag-resize.
+
+**Alternatives considered:**
+- Resize the pet window itself to show more content — fights the "pet should be small and unobtrusive" design intent.
+- Use a `data:` URL like the diff viewer — can't use a preload with `data:` URLs under `contextIsolation: true`, so no IPC for live updates.
+
+---
+
+## 2026-05-11 — Diff viewer as a separate popup window
+
+**Context:** The inline diff view inside the permission bubble was tiny (10px monospace, 120px max-height) and required scrolling in a cramped container. Expanding it in-place pushed the bubble past the 540px window, clipping the bottom.
+
+**Decision:** "Show Diff" now opens a standalone Electron BrowserWindow (480x400, framed, always-on-top) positioned beside the pet. The inline diff container and all its CSS were removed.
+
+**Why:** The pet bubble is intentionally small — trying to show meaningful code diffs inside it is a bad UX tradeoff. A separate window gives enough room for 13px monospace text with proper line wrapping, and the user can resize/reposition it independently. Consistent with how Claude Code shows diffs in a separate pane rather than inline.
+
+**Alternatives considered:**
+- Expand diff inline and auto-resize the pet window — adds layout complexity (flex containers, overflow management) and fights the "pet should be small and unobtrusive" design intent.
+- Show diff in the settings/editor overlay — overloads those panels with unrelated functionality.
+
+---
+
+## 2026-05-11 — Manual drag replaces -webkit-app-region: drag
+
+**Context:** macOS constrains frameless windows to the menu bar during `-webkit-app-region: drag` even with `enableLargerThanScreen: true`. The pet couldn't be dragged past the top of the screen.
+
+**Decision:** Removed `-webkit-app-region: drag` from `#dog` and implemented manual mouse event handling (mousedown/mousemove/mouseup) that computes screen deltas and calls `BrowserWindow.setPosition()` via IPC.
+
+**Why:** `-webkit-app-region: drag` delegates to the OS, which enforces the menu-bar constraint. Manual positioning bypasses this entirely — the app sets coordinates directly, so macOS never gets a chance to clamp them. This is the standard approach used by production Electron apps for unconstrained window dragging.
+
+**Alternatives considered:**
+- Keep `-webkit-app-region: drag` and accept the top-edge limit — user explicitly wanted the pet to go anywhere.
+- Use Electron's `will-move` event to override — still constrained by the initial OS clamp.
+
+---
+
+## 2026-05-11 — Settings as inline disclosure, not full-page overlay
+
+**Context:** Settings were moved to a full-page overlay (like the pet editor) in commit 9c3fb2c. This was reverted — settings are back as an inline disclosure panel inside the bubble.
+
+**Decision:** Settings stays as a toggle panel inside the bubble, not a separate overlay.
+
+**Why:** User preference. Settings has only 2 toggles and an End Session button — not enough content to justify a full-page takeover. The inline disclosure keeps everything in context without a mode switch.
+
+**Alternatives considered:**
+- Full-page overlay (what was reverted) — overkill for the current settings surface area.
+
+---
+
 ## 2026-05-10 — Exit pet via HTTP, not signals
 
 **Context:** "Exit this pet" button needs to tear down the CLI process (which owns the PTY/claude child) in addition to closing the pet window. The original approach sent SIGTERM from the Electron daemon to the CLI's pid, relying on the CLI's signal handler to run async cleanup (`finish()`). This didn't work — the CLI process stayed alive and the terminal kept running even after the pet window closed. Adding a SIGKILL fallback also failed.

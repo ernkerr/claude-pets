@@ -17,8 +17,8 @@
       <div id="title"></div>
       <pre id="content"></pre>
       <div id="summary"></div>
+      <button id="summary-expand" class="link-btn">expand</button>
       <button id="diff-toggle" class="link-btn">Show Diff</button>
-      <div id="diff-view"></div>
       <div id="prompt-line">Do you want to proceed?</div>
       <div id="options"></div>
       <div id="deny-form">
@@ -45,28 +45,22 @@
       </div>
     </div>
 
-    <!-- Bottom bar -->
+    <!-- Settings disclosure -->
     <div id="settings-bar">
       <button id="settings-toggle" title="settings"><i data-lucide="settings"></i></button>
       <button id="editor-toggle" title="edit pet"><i data-lucide="pencil"></i></button>
     </div>
-  </div>
-
-  <!-- Settings overlay -->
-  <div id="settings-overlay" class="editor-overlay">
-    <div class="editor-header">
-      <span class="editor-title">Settings</span>
-      <button id="settings-close" class="editor-close-btn"><i data-lucide="x"></i></button>
+    <div id="settings-panel">
+      <label class="toggle-row">
+        <input type="checkbox" id="pill-verbose" />
+        Thinking out loud
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="pill-playful" checked />
+        Playful status
+      </label>
+      <button id="btn-end-session" class="editor-btn editor-btn-danger settings-end-btn"><i data-lucide="log-out"></i> End Session</button>
     </div>
-    <label class="toggle-row">
-      <input type="checkbox" id="pill-verbose" />
-      Thinking out loud
-    </label>
-    <label class="toggle-row">
-      <input type="checkbox" id="pill-playful" checked />
-      Playful status
-    </label>
-    <button id="btn-end-session" class="editor-btn editor-btn-danger settings-end-btn"><i data-lucide="log-out"></i> End Session</button>
   </div>
 
   <!-- Pet Editor overlay -->

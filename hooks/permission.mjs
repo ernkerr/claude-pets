@@ -77,7 +77,7 @@ let summary = '';
 if (transcriptPath) {
   try {
     const full = extractLastAssistantText(transcriptPath);
-    if (full) summary = full.length > 120 ? full.slice(0, 117) + '...' : full;
+    if (full) summary = full;
   } catch {}
 }
 

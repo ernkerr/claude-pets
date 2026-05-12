@@ -32,6 +32,10 @@ contextBridge.exposeInMainWorld('agent', {
   resizeWindow: (width, height) => ipcRenderer.send('window:resize', { sessionId: session.id, width, height }),
   setWindowPosition: (x, y) => ipcRenderer.send('window:set-position', { sessionId: session.id, x, y }),
   showDiff: (diffData, title) => ipcRenderer.send('diff:show', { sessionId: session.id, diffData, title }),
+  openExpandWindow: (text) => ipcRenderer.send('expand:open', { sessionId: session.id, text }),
+  updateExpandWindow: (text) => ipcRenderer.send('expand:update', { sessionId: session.id, text }),
+  closeExpandWindow: () => ipcRenderer.send('expand:close', { sessionId: session.id }),
+  onExpandClosed: (cb) => ipcRenderer.on('expand:closed', () => cb()),
 
   // Pet store
   petsList: () => ipcRenderer.invoke('pets:list'),
@@ -50,4 +54,12 @@ contextBridge.exposeInMainWorld('agent', {
     ipcRenderer.invoke('pets:swapStates', { petId, fromState, toState }),
   petsReorder: (fromId, toId) => ipcRenderer.invoke('pets:reorder', { fromId, toId }),
   petsDelete: (petId) => ipcRenderer.invoke('pets:delete', { petId }),
+
+  // GitHub contribute
+  githubAuthStatus: () => ipcRenderer.invoke('github:authStatus'),
+  githubStartAuth: () => ipcRenderer.invoke('github:startAuth'),
+  githubWaitForAuth: () => ipcRenderer.invoke('github:waitForAuth'),
+  githubCancelAuth: () => ipcRenderer.send('github:cancelAuth'),
+  petsContribute: (petId) => ipcRenderer.invoke('pets:contribute', { petId }),
+  openExternal: (url) => ipcRenderer.invoke('shell:openExternal', { url }),
 });

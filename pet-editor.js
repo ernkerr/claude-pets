@@ -20,6 +20,8 @@ export function init(state) {
   const galleryLabel = overlay.querySelector('.gallery-label');
   const gallery = document.getElementById('pet-gallery');
   const stateBoxes = overlay.querySelectorAll('.state-box');
+  const contributeBtn = document.getElementById('btn-contribute-pet');
+  const contributeStatus = document.getElementById('contribute-status');
 
   let currentPets = [];
   let activePetId = null;
@@ -119,6 +121,10 @@ export function init(state) {
   function renderStateBoxes() {
     const activePet = currentPets.find((p) => p.id === activePetId);
     if (!activePet) return;
+
+    // Show contribute button for user pets with at least one image
+    const hasAnyImage = Object.values(activePet.states).some(Boolean);
+    contributeBtn.style.display = (activePet.builtIn || !hasAnyImage) ? 'none' : '';
 
     stateBoxes.forEach((box) => {
       const stateName = box.dataset.state;
@@ -340,6 +346,70 @@ export function init(state) {
       showStateEditor();
       editPetName.focus();
       editPetName.select();
+    }
+  };
+
+  // --- Contribute Pet ---
+  function setContributeStatus(cls, html) {
+    contributeStatus.className = `contribute-status show ${cls}`;
+    contributeStatus.innerHTML = html;
+  }
+
+  function hideContributeStatus() {
+    contributeStatus.className = 'contribute-status';
+    contributeStatus.innerHTML = '';
+  }
+
+  contributeBtn.onclick = async () => {
+    contributeBtn.disabled = true;
+    hideContributeStatus();
+
+    try {
+      // Check auth
+      let auth = await window.agent.githubAuthStatus();
+
+      if (!auth.authenticated) {
+        // Start device flow
+        const flow = await window.agent.githubStartAuth();
+        setContributeStatus('loading',
+          `Go to <strong>${flow.verificationUri}</strong> and enter code<br>` +
+          `<span class="contribute-code">${flow.userCode}</span><br>` +
+          `<button class="contribute-open-btn" id="contribute-open-browser">Open Browser</button>`
+        );
+
+        document.getElementById('contribute-open-browser').onclick = () => {
+          window.agent.openExternal(flow.verificationUri);
+        };
+
+        // Wait for auth to complete
+        auth = await window.agent.githubWaitForAuth();
+        if (!auth.authenticated) {
+          setContributeStatus('error', 'Authentication cancelled or failed');
+          contributeBtn.disabled = false;
+          return;
+        }
+      }
+
+      // Authenticated — proceed with contribution
+      setContributeStatus('loading', 'Creating PR...');
+      const result = await window.agent.petsContribute(activePetId);
+
+      if (result.success) {
+        const esc = (s) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+        setContributeStatus('success',
+          `PR created by <strong>@${esc(result.username)}</strong>!<br>` +
+          `<a href="#" class="contribute-link">View on GitHub</a>`
+        );
+        const link = contributeStatus.querySelector('.contribute-link');
+        const prUrl = result.prUrl;
+        link.onclick = (e) => { e.preventDefault(); window.agent.openExternal(prUrl); };
+      } else {
+        setContributeStatus('error', result.error);
+      }
+    } catch (err) {
+      setContributeStatus('error', err.message || 'Unknown error');
+    } finally {
+      contributeBtn.disabled = false;
     }
   };
 

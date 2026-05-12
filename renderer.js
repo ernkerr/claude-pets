@@ -15,7 +15,6 @@ const state = {
   currentRequestId: null,
   lastMessage: '',
   lastActivity: '',
-  isExpanded: false,
   userPinnedOpen: false,
   userDismissed: false,
   workingState: false,
