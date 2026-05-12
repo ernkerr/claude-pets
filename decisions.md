@@ -4,6 +4,21 @@ A running log of design and architectural decisions for claude-pets, plus the re
 
 ---
 
+## 2026-05-11 — Bubble resize via a visible bottom-right grip, not native window resize
+
+**Context:** The pet bubble window is created with `resizable: false`, `frame: false`, `transparent: true` — so there was no way to resize it. Users tried dragging the corners and nothing happened. We needed a way to make long content (messages, permission summaries) more readable in-place without forcing the expand-window every time.
+
+**Decision:** Added a visible 18×18 resize grip (diagonal-hatch background) absolutely positioned in the bottom-right of `#bubble`. On `mousedown` it captures the mouse using `screenX`/`screenY` deltas and calls the existing `window:resize` IPC (`agent.resizeWindow`). Clamped to a 240×360 minimum. `#msg-text` `max-height` is now `max(90px, calc(100vh - 450px))` so the message area grows with the window. Size is not persisted across launches — ephemeral by design.
+
+**Why:** Native window resize doesn't work well with `transparent: true` + `frame: false` on macOS (edge hit areas are unreliable), and a visible grip gives a more discoverable affordance with a generous hit target. Reuses the same screen-coord delta pattern as the manual drag in `renderer.js` and the existing `window:resize` IPC handler — no new plumbing. Keeping it ephemeral matches the pet's "small and unobtrusive by default" stance; if a user wants a permanent larger size, the expand window is still the right tool.
+
+**Alternatives considered:**
+- `resizable: true` on the window — cheap to flip, but transparent edges don't reliably accept resize events on macOS, so the felt behavior would still be "nothing happens".
+- Invisible edge hit zones — feels native but fights both the transparent window and the drag-anywhere behavior on `#dog`.
+- Auto-fit to content — loses user control, and the pet-editor already uses this pattern for its own panel, so users who want manual control had no escape hatch.
+
+---
+
 ## 2026-05-11 — Permission summary is sent in full; bubble line-clamps and offers expand
 
 **Context:** The pre-tool-use permission hook was hard-truncating Claude's last-assistant-message summary to 117 chars + "..." before sending it to the pet. The bubble showed the resulting fragment with no way to recover the full text — for non-trivial tool calls (e.g. TaskCreate with a multi-sentence rationale), the user had to approve/deny based on a half-sentence.

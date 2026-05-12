@@ -97,6 +97,27 @@ body::-webkit-scrollbar { display: none; }
   color: var(--text);
 }
 #bubble.show { display: block; }
+
+#resize-grip {
+  -webkit-app-region: no-drag;
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  opacity: 0.45;
+  background-image:
+    linear-gradient(135deg,
+      transparent 0%, transparent 42%,
+      var(--text-dim) 42%, var(--text-dim) 50%,
+      transparent 50%, transparent 62%,
+      var(--text-dim) 62%, var(--text-dim) 70%,
+      transparent 70%, transparent 82%,
+      var(--text-dim) 82%, var(--text-dim) 90%,
+      transparent 90%);
+}
+#resize-grip:hover { opacity: 0.9; }
 /* speech tail pointing up to the dog */
 #bubble::before {
   content: '';
@@ -130,7 +151,7 @@ body::-webkit-scrollbar { display: none; }
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 90px;
+  max-height: max(90px, calc(100vh - 450px));
   overflow-y: auto;
   margin-bottom: 4px;
 }

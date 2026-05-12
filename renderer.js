@@ -84,6 +84,31 @@ dog.addEventListener('mousedown', (e) => {
   document.addEventListener('mouseup', onUp);
 });
 
+// --- bubble resize grip ---
+const resizeGrip = document.getElementById('resize-grip');
+const MIN_W = 240;
+const MIN_H = 360;
+resizeGrip.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const startX = e.screenX;
+  const startY = e.screenY;
+  const startW = window.outerWidth;
+  const startH = window.outerHeight;
+  const onMove = (me) => {
+    const newW = Math.max(MIN_W, startW + (me.screenX - startX));
+    const newH = Math.max(MIN_H, startH + (me.screenY - startY));
+    window.agent.resizeWindow(newW, newH);
+  };
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+});
+
 // --- boot modules ---
 initBubble(state);
 initPermissions(state);
