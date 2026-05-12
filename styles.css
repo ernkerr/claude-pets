@@ -203,6 +203,56 @@ body::-webkit-scrollbar { display: none; }
 #expand-btn { display: none; margin-bottom: 6px; }
 #message-section { margin-bottom: 8px; }
 
+/* ----- question section ----- */
+#question-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+#question-options {
+  margin-bottom: 8px;
+}
+#question-options .opt {
+  font-size: 11px;
+  padding: 5px 10px;
+}
+#question-options .opt .opt-desc {
+  display: block;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: normal;
+  margin-top: 2px;
+}
+#question-reply {
+  -webkit-app-region: no-drag;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 11px;
+  resize: none;
+  background: #fff;
+  color: var(--text);
+}
+#question-reply:focus { outline: none; border-color: var(--accent); }
+#question-send {
+  -webkit-app-region: no-drag;
+  margin-top: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  float: right;
+}
+#question-send:hover { background: var(--accent-hover); }
+
 /* divider between message and input */
 .divider {
   height: 1px;

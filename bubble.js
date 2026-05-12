@@ -30,6 +30,11 @@ export function init(state) {
   const sendBtn = document.getElementById('send-btn');
   const settingsToggle = document.getElementById('settings-toggle');
   const settingsPanel = document.getElementById('settings-panel');
+  const questionSection = document.getElementById('question-section');
+  const questionText = document.getElementById('question-text');
+  const questionOptions = document.getElementById('question-options');
+  const questionReply = document.getElementById('question-reply');
+  const questionSend = document.getElementById('question-send');
 
   const PREVIEW_LEN = 280;
 
@@ -42,13 +47,15 @@ export function init(state) {
   // --- rerender: the single function that syncs DOM to state ---
   state.rerender = () => {
     const hasPermission = state.currentRequestId !== null;
+    const hasQuestion = state.pendingQuestion !== null;
     const hasMessage = state.lastMessage.length > 0;
-    const showBubble = hasPermission || ((hasMessage || state.userPinnedOpen) && !state.userDismissed);
+    const showBubble = hasPermission || hasQuestion || ((hasMessage || state.userPinnedOpen) && !state.userDismissed);
 
     bubble.classList.toggle('show', showBubble);
-    permissionSection.classList.toggle('show', hasPermission);
-    messageSection.classList.toggle('show', !hasPermission && hasMessage);
-    inputSection.classList.toggle('show', !hasPermission);
+    permissionSection.classList.toggle('show', hasPermission && !hasQuestion);
+    questionSection.classList.toggle('show', hasQuestion);
+    messageSection.classList.toggle('show', !hasPermission && !hasQuestion && hasMessage);
+    inputSection.classList.toggle('show', !hasPermission && !hasQuestion);
 
     renderPill(statusPill, state);
 
@@ -102,6 +109,25 @@ export function init(state) {
   // --- settings ---
   settingsToggle.onclick = () => settingsPanel.classList.toggle('show');
 
+  // --- answer a question from Claude ---
+  function answerQuestion(text) {
+    window.agent.reply(text);
+    state.pendingQuestion = null;
+    state.workingState = true;
+    if (state.verbose && state.playful) startPhraseRotation(state);
+    state.updatePetImage('thinking');
+    state.rerender();
+  }
+
+  questionSend.onclick = () => {
+    const text = questionReply.value.trim();
+    if (!text) return;
+    answerQuestion(text);
+  };
+  questionReply.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') questionSend.click();
+  });
+
   // --- pet events ---
   function derivePetState() {
     if (state.currentRequestId !== null) return 'responseNeeded';
@@ -137,9 +163,35 @@ export function init(state) {
       }
       state.updatePetImage(derivePetState());
       state.rerender();
+    } else if (event.type === 'question') {
+      state.pendingQuestion = event;
+      state.workingState = false;
+      stopPhraseRotation();
+      questionText.textContent = event.text || 'Claude has a question:';
+      questionOptions.innerHTML = '';
+      (event.options || []).forEach((opt) => {
+        const btn = document.createElement('button');
+        btn.className = 'opt';
+        const strong = document.createElement('strong');
+        strong.textContent = opt.label;
+        btn.appendChild(strong);
+        if (opt.description) {
+          const desc = document.createElement('span');
+          desc.className = 'opt-desc';
+          desc.textContent = opt.description;
+          btn.appendChild(desc);
+        }
+        btn.onclick = () => answerQuestion(opt.label);
+        questionOptions.appendChild(btn);
+      });
+      questionReply.value = '';
+      state.userDismissed = false;
+      state.updatePetImage('responseNeeded');
+      state.rerender();
     } else if (event.type === 'user-task') {
       state.lastMessage = '';
       state.lastActivity = '';
+      state.pendingQuestion = null;
       if (expandWindowOpen) {
         window.agent.closeExpandWindow();
         expandWindowOpen = false;

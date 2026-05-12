@@ -44,6 +44,32 @@ if (SAFE_TOOLS.has(toolName)) {
   });
 }
 
+// AskUserQuestion: auto-allow and send the question + options to the pet
+// so the user can answer from the bubble instead of the terminal.
+if (toolName === 'AskUserQuestion') {
+  dlog('perm', 'auto-allowing AskUserQuestion');
+  const questions = toolInput.questions || [];
+  if (questions.length > 0) {
+    const q = questions[0]; // handle first question
+    const options = (q.options || []).map((o, i) => ({
+      label: o.label,
+      description: o.description || '',
+      index: i + 1,
+    }));
+    await postEvent(BASE, {
+      type: 'question',
+      text: q.question || '',
+      options,
+    });
+  }
+  done({
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'allow',
+    },
+  });
+}
+
 const activityText = formatToolActivity(toolName, toolInput);
 await postEvent(BASE, { type: 'tool-activity', text: activityText });
 

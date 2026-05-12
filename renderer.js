@@ -15,6 +15,7 @@ const state = {
   currentRequestId: null,
   lastMessage: '',
   lastActivity: '',
+  pendingQuestion: null,
   userPinnedOpen: false,
   userDismissed: false,
   workingState: false,
