@@ -430,8 +430,15 @@ ipcMain.on('window:set-always-on-top', (_evt, { sessionId, onTop }) => {
   if (!session) return;
   session.alwaysOnTop = onTop;
   if (session.win && !session.win.isDestroyed()) {
-    if (onTop) session.win.setAlwaysOnTop(true, 'floating');
-    else session.win.setAlwaysOnTop(false);
+    if (onTop) {
+      session.win.setAlwaysOnTop(true, 'floating');
+      session.win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    } else {
+      session.win.setAlwaysOnTop(false);
+      // Without this, the window keeps floating over other Spaces and fullscreen apps
+      // even after the user toggles "Stay on top" off.
+      session.win.setVisibleOnAllWorkspaces(false);
+    }
   }
   if (session.expandWin && !session.expandWin.isDestroyed()) {
     if (onTop) session.expandWin.setAlwaysOnTop(true, 'floating', 1);
