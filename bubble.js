@@ -41,6 +41,7 @@ export function init(state) {
   initToggles(
     document.getElementById('pill-verbose'),
     document.getElementById('pill-playful'),
+    document.getElementById('pill-always-on-top'),
     state,
   );
 

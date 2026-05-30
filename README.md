@@ -2,7 +2,7 @@
 
 **A desktop pet for your AI coding sessions.**
 
-A tiny companion that sits on your screen, handles permissions, and lets you talk back — without ever leaving your editor.
+A tiny companion that sits on your screen, handles permissions, and lets you talk back.
 
 > **Requires macOS.** Linux/Windows aren't supported yet — PRs welcome.
 
@@ -23,6 +23,8 @@ Run `claude-pets` and three things happen:
 Permission prompts (file edits, bash commands, etc.) get routed to the pet as clickable approve/deny buttons. You can reply from the pet's text box _or_ from the terminal — both feed into the same session.
 
 When Claude is idle, your pet is idle. When Claude is thinking, your pet thinks out loud or shows playful status updates. When Claude needs a response, the pet lets you know and tries to get your attention.
+
+Bring your own pet — drop in PNG, JPG, **animated GIF**, WebP, or SVG (up to 5 MB per image) and your pet will wiggle, blink, or do whatever you draw it doing.
 
 ## Install
 
@@ -46,7 +48,7 @@ The daemon auto-launches on first run and stays alive in the background. Each in
 
 ## Using it
 
-**Drag the pet anywhere on your screen.** It's always on top, visible across all workspaces and fullscreen apps — no boundaries.
+**Drag the pet anywhere on your screen.** By default it stays on top, visible across all workspaces and fullscreen apps — toggle **Stay on top** off in settings if you'd rather it sit behind your active window.
 
 **Click the status pill** (the label under the pet) to open the speech bubble. Claude's messages show up here. Type in the text box at the bottom to reply, or keep using the terminal — both work.
 
@@ -56,6 +58,7 @@ The daemon auto-launches on first run and stays alive in the background. Each in
 
 - **Thinking out loud** — shows verbose status updates while Claude works
 - **Playful status** — fun phrases instead of literal tool names ("cooking..." instead of "Edit file")
+- **Stay on top** — keeps the pet above other windows. Turn it off if it gets in the way of tabs or anything else you're clicking on.
 
 **End the session** from the terminal with `Ctrl+C` or from settings in the pet. Either way, hooks get cleaned up and the window closes.
 
@@ -70,11 +73,11 @@ The default is a pixel-art sausage dog. To add your own:
 
 Every pet has up to three states:
 
-| State | When | Required? |
-|-------|------|-----------|
-| **Idle** | Claude is resting | Yes |
-| **Thinking** | Claude is working | No |
-| **Needs response** | Permission prompt or question | No |
+| State              | When                          | Required? |
+| ------------------ | ----------------------------- | --------- |
+| **Idle**           | Claude is resting             | Yes       |
+| **Thinking**       | Claude is working             | No        |
+| **Needs response** | Permission prompt or question | No        |
 
 If you skip thinking or needs-response, the pet falls back to idle. GIFs animate — so if you want a pet that wiggles while Claude thinks, go for it.
 

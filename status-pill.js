@@ -84,11 +84,14 @@ export function renderPill(el, state) {
   }
 }
 
-export function initToggles(pillVerboseCheckbox, pillPlayfulCheckbox, state) {
+export function initToggles(pillVerboseCheckbox, pillPlayfulCheckbox, pillAlwaysOnTopCheckbox, state) {
   state.verbose = localStorage.getItem('pillVerbose') === 'true';
   state.playful = localStorage.getItem('pillPlayful') !== 'false';
+  state.alwaysOnTop = localStorage.getItem('pillAlwaysOnTop') !== 'false';
   pillVerboseCheckbox.checked = state.verbose;
   pillPlayfulCheckbox.checked = state.playful;
+  pillAlwaysOnTopCheckbox.checked = state.alwaysOnTop;
+  window.agent.setAlwaysOnTop(state.alwaysOnTop);
 
   pillVerboseCheckbox.onchange = () => {
     state.verbose = pillVerboseCheckbox.checked;
@@ -108,5 +111,11 @@ export function initToggles(pillVerboseCheckbox, pillPlayfulCheckbox, state) {
       else stopPhraseRotation();
     }
     state.rerender();
+  };
+
+  pillAlwaysOnTopCheckbox.onchange = () => {
+    state.alwaysOnTop = pillAlwaysOnTopCheckbox.checked;
+    localStorage.setItem('pillAlwaysOnTop', state.alwaysOnTop);
+    window.agent.setAlwaysOnTop(state.alwaysOnTop);
   };
 }

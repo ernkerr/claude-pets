@@ -425,6 +425,20 @@ ipcMain.on('window:set-position', (_evt, { sessionId, x, y }) => {
   session.win.setPosition(Math.round(x), Math.round(y));
 });
 
+ipcMain.on('window:set-always-on-top', (_evt, { sessionId, onTop }) => {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  session.alwaysOnTop = onTop;
+  if (session.win && !session.win.isDestroyed()) {
+    if (onTop) session.win.setAlwaysOnTop(true, 'floating');
+    else session.win.setAlwaysOnTop(false);
+  }
+  if (session.expandWin && !session.expandWin.isDestroyed()) {
+    if (onTop) session.expandWin.setAlwaysOnTop(true, 'floating', 1);
+    else session.expandWin.setAlwaysOnTop(false);
+  }
+});
+
 ipcMain.on('diff:show', (_evt, { sessionId, diffData, title }) => {
   const session = sessions.get(sessionId);
   if (!session || !session.win || session.win.isDestroyed()) return;
@@ -479,6 +493,7 @@ ipcMain.on('expand:open', (_evt, { sessionId, text }) => {
   const parentBounds = session.win.getBounds();
   const { width, height } = loadWindowSize('expand', { width: 520, height: 460 });
 
+  const onTop = session.alwaysOnTop !== false;
   const expandWin = new BrowserWindow({
     width,
     height,
@@ -487,7 +502,7 @@ ipcMain.on('expand:open', (_evt, { sessionId, text }) => {
     frame: true,
     transparent: false,
     resizable: true,
-    alwaysOnTop: true,
+    alwaysOnTop: onTop,
     title: `${session.name} — message`,
     webPreferences: {
       preload: path.join(__dirname, 'expand-preload.js'),
@@ -495,7 +510,7 @@ ipcMain.on('expand:open', (_evt, { sessionId, text }) => {
     },
   });
 
-  expandWin.setAlwaysOnTop(true, 'floating', 1);
+  if (onTop) expandWin.setAlwaysOnTop(true, 'floating', 1);
   session.expandWin = expandWin;
   expandWin.loadFile('expand.html');
 

@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('agent', {
   exitSession: () => ipcRenderer.send('session:exit', { sessionId: session.id }),
   resizeWindow: (width, height) => ipcRenderer.send('window:resize', { sessionId: session.id, width, height }),
   setWindowPosition: (x, y) => ipcRenderer.send('window:set-position', { sessionId: session.id, x, y }),
+  setAlwaysOnTop: (onTop) => ipcRenderer.send('window:set-always-on-top', { sessionId: session.id, onTop: !!onTop }),
   showDiff: (diffData, title) => ipcRenderer.send('diff:show', { sessionId: session.id, diffData, title }),
   openExpandWindow: (text) => ipcRenderer.send('expand:open', { sessionId: session.id, text }),
   updateExpandWindow: (text) => ipcRenderer.send('expand:update', { sessionId: session.id, text }),
