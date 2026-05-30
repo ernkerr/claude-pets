@@ -54,12 +54,4 @@ contextBridge.exposeInMainWorld('agent', {
     ipcRenderer.invoke('pets:swapStates', { petId, fromState, toState }),
   petsReorder: (fromId, toId) => ipcRenderer.invoke('pets:reorder', { fromId, toId }),
   petsDelete: (petId) => ipcRenderer.invoke('pets:delete', { petId }),
-
-  // GitHub contribute
-  githubAuthStatus: () => ipcRenderer.invoke('github:authStatus'),
-  githubStartAuth: () => ipcRenderer.invoke('github:startAuth'),
-  githubWaitForAuth: () => ipcRenderer.invoke('github:waitForAuth'),
-  githubCancelAuth: () => ipcRenderer.send('github:cancelAuth'),
-  petsContribute: (petId) => ipcRenderer.invoke('pets:contribute', { petId }),
-  openExternal: (url) => ipcRenderer.invoke('shell:openExternal', { url }),
 });

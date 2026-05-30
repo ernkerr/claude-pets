@@ -120,9 +120,11 @@ const options = [
 
 let result;
 try {
+  const headers = { 'Content-Type': 'application/json' };
+  if (process.env.CLAUDE_PETS_TOKEN) headers.Authorization = `Bearer ${process.env.CLAUDE_PETS_TOKEN}`;
   const response = await fetch(`${BASE}/approve`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ message: title, content, options, toolName, diffData, summary }),
   });
   if (!response.ok) {

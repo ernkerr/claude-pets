@@ -26,3 +26,6 @@ out/
 # Electron
 *.app
 .gstack/
+
+# Claude Code per-machine local settings (user/machine state, not repo state)
+.claude/settings.local.json

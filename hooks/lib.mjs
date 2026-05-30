@@ -51,9 +51,12 @@ export function formatToolActivity(toolName, toolInput) {
 
 export async function postEvent(base, body) {
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = process.env.CLAUDE_PETS_TOKEN;
+    if (token) headers.Authorization = `Bearer ${token}`;
     await fetch(`${base}/event`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
     });
   } catch {} // best-effort; daemon may be gone

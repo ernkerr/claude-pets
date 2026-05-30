@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 import { ensureDaemon } from '../lib/daemon.mjs';
+import { readTokenSync } from '../lib/daemon-token.mjs';
 import { createHookManager } from '../lib/hook-settings.mjs';
 import { findClaudeBinary } from '../lib/claude-binary.mjs';
 
@@ -30,6 +31,8 @@ try {
   process.exit(2);
 }
 const sessionBase = `${DAEMON}/sessions/${session.sessionId}`;
+const TOKEN = readTokenSync();
+const AUTH = TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {};
 
 // ---------- install hooks ----------
 const hooks = createHookManager({
@@ -52,7 +55,7 @@ const finish = async (code) => {
   const failsafe = setTimeout(() => process.exit(code ?? 1), 5000);
   failsafe.unref();
   try { ptyProcess?.kill(); } catch {}
-  try { await fetch(`${sessionBase}`, { method: 'DELETE' }); } catch {} // best-effort session teardown
+  try { await fetch(`${sessionBase}`, { method: 'DELETE', headers: AUTH }); } catch {} // best-effort session teardown
   await hooks.uninstall(); // must run after DELETE so this session isn't counted
   process.exit(code ?? 0);
 };
@@ -66,6 +69,7 @@ const claudeBin = findClaudeBinary();
 const env = {
   ...process.env,
   CLAUDE_PETS_BASE: sessionBase, // hook reads this
+  CLAUDE_PETS_TOKEN: TOKEN || '', // hooks send this as Bearer auth to the daemon
   TERM: process.env.TERM || 'xterm-256color',
 };
 
@@ -79,7 +83,7 @@ try {
     env,
   });
 } catch (err) {
-  try { await fetch(`${sessionBase}`, { method: 'DELETE' }); } catch {} // best-effort session teardown
+  try { await fetch(`${sessionBase}`, { method: 'DELETE', headers: AUTH }); } catch {} // best-effort session teardown
   await hooks.uninstall();
   console.error(`claude-pets: failed to spawn claude (${claudeBin}): ${err.message}`);
   console.error('If this is the first run after npm install, try: chmod +x node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper');
@@ -107,7 +111,7 @@ async function inboxLoop() {
   while (!exiting) {
     let body;
     try {
-      const response = await fetch(`${sessionBase}/inbox?since=${since}&timeout=30`);
+      const response = await fetch(`${sessionBase}/inbox?since=${since}&timeout=30`, { headers: AUTH });
       if (!response.ok) {
         if (response.status === 404 || response.status === 410) { finish(0); return; }
         await sleep(INBOX_BACKOFF_MS);

@@ -4,6 +4,8 @@
 
 A tiny companion that sits on your screen, handles permissions, and lets you talk back — without ever leaving your editor.
 
+> **Requires macOS.** Linux/Windows aren't supported yet — PRs welcome.
+
 <p align="center">
   <img src="assets/default-pet.png" alt="Sausage Dog — the default pet" width="120" />
 </p>
@@ -24,7 +26,7 @@ When Claude is idle, your pet is idle. When Claude is thinking, your pet thinks 
 
 ## Install
 
-You need **Node.js 18+** and [**Claude Code**](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated (`claude` in your PATH).
+You need **macOS**, **Node.js 18+**, and [**Claude Code**](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated (`claude` in your PATH).
 
 ```bash
 git clone https://github.com/ernkerr/claude-pets.git
@@ -93,10 +95,6 @@ claude-pets itself doesn't touch your code. It's a UI layer. Claude Code reads y
 **Is this free?**
 
 claude-pets is free and open source. You do still need a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plan since it spawns a real Claude Code session under the hood.
-
-**Can I contribute my pet for others to use?**
-
-Yes — directly from the app. Open the pet editor, hit **Edit Pet** on the one you want to share, and click **Contribute Pet**. The app walks you through GitHub authentication (one-time device code flow), then automatically forks the repo, uploads your images, and opens a pull request. Once merged, your pet ships with the app for everyone.
 
 **Can I run multiple pets at once?**
 

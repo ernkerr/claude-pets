@@ -14,6 +14,33 @@ const WINDOW_SIZES_FILE = path.join(
   '.claude-pets',
   'window-sizes.json',
 );
+const TOKEN_FILE = path.join(
+  process.env.HOME || process.env.USERPROFILE,
+  '.claude-pets',
+  'daemon-token',
+);
+
+function loadOrCreateDaemonToken() {
+  try {
+    const existing = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
+    if (existing) return existing;
+  } catch {} // file missing or unreadable — generate fresh
+  const token = crypto.randomBytes(32).toString('hex');
+  fs.mkdirSync(path.dirname(TOKEN_FILE), { recursive: true });
+  fs.writeFileSync(TOKEN_FILE, token, { mode: 0o600 });
+  return token;
+}
+
+let DAEMON_TOKEN = null;
+
+function checkAuth(req) {
+  const auth = req.headers['authorization'] || '';
+  if (!auth.startsWith('Bearer ')) return false;
+  const got = Buffer.from(auth.slice(7));
+  const want = Buffer.from(DAEMON_TOKEN);
+  if (got.length !== want.length) return false;
+  return crypto.timingSafeEqual(got, want);
+}
 
 function loadWindowSizes() {
   try {
@@ -208,6 +235,12 @@ function startServer() {
       const url = new URL(req.url, `http://localhost:${PORT}`);
 
       try {
+        if (!checkAuth(req)) {
+          res.writeHead(401);
+          res.end();
+          return;
+        }
+
         if (req.method === 'POST' && url.pathname === '/sessions') {
           const { cwd, name, pid } = await readJson(req);
           if (!cwd || typeof cwd !== 'string') {
@@ -744,6 +777,7 @@ function sweepOrphans() {
 }
 
 app.whenReady().then(() => {
+  DAEMON_TOKEN = loadOrCreateDaemonToken();
   startServer();
   setInterval(sweepOrphans, SWEEP_INTERVAL_MS);
 });

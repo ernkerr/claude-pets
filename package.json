@@ -12,12 +12,31 @@
     "test": "node --test test/*.test.mjs",
     "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper node_modules/node-pty/prebuilds/darwin-x64/spawn-helper 2>/dev/null || true"
   },
+  "license": "MIT",
+  "author": "Erin Kerr",
+  "homepage": "https://github.com/ernkerr/claude-pets#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ernkerr/claude-pets.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ernkerr/claude-pets/issues"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "electron",
+    "desktop-pet",
+    "ai",
+    "developer-tools"
+  ],
+  "os": [
+    "darwin"
+  ],
   "dependencies": {
     "dompurify": "^3.4.2",
+    "electron": "^33.0.0",
     "marked": "^18.0.3",
     "node-pty": "^1.1.0"
-  },
-  "devDependencies": {
-    "electron": "^33.0.0"
   }
 }
