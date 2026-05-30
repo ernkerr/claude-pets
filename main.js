@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, shell, safeStorage } = require('electron');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
@@ -601,12 +601,23 @@ let github = null;
 let authPoller = null;
 
 async function getGitHub() {
-  if (!github) github = await import('./lib/github.mjs');
+  if (!github) {
+    github = await import('./lib/github.mjs');
+    if (safeStorage.isEncryptionAvailable()) {
+      github.setEncryption(
+        (plaintext) => safeStorage.encryptString(plaintext),
+        (encrypted) => safeStorage.decryptString(encrypted),
+      );
+    }
+  }
   return github;
 }
 
 ipcMain.handle('github:authStatus', async () => {
   const gh = await getGitHub();
+  if (!gh.isOAuthConfigured()) {
+    return { authenticated: false, oauthMissing: true };
+  }
   const token = gh.loadToken();
   if (!token) return { authenticated: false };
   const { valid, username } = await gh.validateToken(token);

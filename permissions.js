@@ -82,10 +82,11 @@ export function init(state) {
     }
 
     optionsBox.innerHTML = '';
-    (options || []).forEach((opt) => {
+    (options || []).forEach((opt, idx) => {
       const btn = document.createElement('button');
       btn.className = `opt ${opt.id}`;
       btn.textContent = opt.label;
+      btn.setAttribute('aria-label', `${opt.label} (press ${idx + 1})`);
       if (opt.id === 'deny') {
         btn.onclick = () => showDenyForm();
       } else {

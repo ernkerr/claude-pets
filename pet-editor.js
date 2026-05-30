@@ -368,6 +368,14 @@ export function init(state) {
       // Check auth
       let auth = await window.agent.githubAuthStatus();
 
+      if (auth.oauthMissing) {
+        setContributeStatus('error',
+          'GitHub OAuth not configured. Set the CLAUDE_PETS_GITHUB_CLIENT_ID environment variable. See README for setup instructions.'
+        );
+        contributeBtn.disabled = false;
+        return;
+      }
+
       if (!auth.authenticated) {
         // Start device flow
         const flow = await window.agent.githubStartAuth();

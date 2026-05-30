@@ -4,6 +4,36 @@ A running log of design and architectural decisions for claude-pets, plus the re
 
 ---
 
+## 2026-05-12 — Encrypt GitHub tokens at rest with Electron safeStorage
+
+**Context:** The Contribute Pet flow stores a GitHub OAuth token at `~/.claude-pets/github-token` as plaintext with `0o600` permissions. QA flagged this as a medium-severity security issue — any process running as the same user can read the token, and it survives in cloud backups unencrypted.
+
+**Decision:** Use Electron's `safeStorage` API to encrypt tokens before writing and decrypt after reading. The encryption adapter is injected into `github.mjs` via a `setEncryption(encryptFn, decryptFn)` setter called from `main.js`, keeping the module testable in plain Node. If `safeStorage.isEncryptionAvailable()` returns false (some Linux configurations without a keyring daemon), fall back silently to plaintext — the `0o600` permission remains as baseline defense. Existing plaintext tokens are read transparently via a catch fallback in `loadToken()` and re-saved encrypted on next write.
+
+**Why:** `safeStorage` is built into Electron 33 and uses the OS keychain (Keychain on macOS, DPAPI on Windows, Secret Service on Linux) — no new dependencies. The adapter pattern avoids importing `electron` in a module that's also used by the main process's dynamic import, keeping test isolation simple. The transparent migration means no user action is required to upgrade.
+
+**Alternatives considered:**
+- `keytar` npm package — adds a native dependency with its own build/compatibility issues; `safeStorage` covers the same ground with zero extra deps.
+- Keep plaintext with documentation — acceptable for a local-only app, but `safeStorage` is cheap to add and meaningfully raises the bar.
+- Encrypt only on macOS — inconsistent behavior across platforms; better to use the same code path everywhere and let `isEncryptionAvailable()` handle the fallback.
+
+---
+
+## 2026-05-12 — Configurable GitHub OAuth CLIENT_ID via environment variable
+
+**Context:** The Contribute Pet flow hardcoded a placeholder `CLIENT_ID = 'Ov23liYourClientIdHere'` at `lib/github.mjs:7`, making the entire flow non-functional. Since the repo is open source, a real client ID can't be committed — any fork maintainer needs their own GitHub OAuth App.
+
+**Decision:** Read `process.env.CLAUDE_PETS_GITHUB_CLIENT_ID` at module load, falling back to the placeholder. Export `isOAuthConfigured()` so the UI can detect the unconfigured state. When the placeholder is still active, the Contribute Pet button immediately shows an actionable error message ("Set CLAUDE_PETS_GITHUB_CLIENT_ID") instead of silently failing during the Device Flow.
+
+**Why:** The env var name follows the existing `CLAUDE_PETS_*` convention (`CLAUDE_PETS_BASE`, `CLAUDE_PETS_DAEMON`). Surfacing the error in the contribute UI (rather than at startup or in logs) means users only see it when they actually try to contribute, which is the right moment. The placeholder stays in source as a sentinel value so the code always parses — `isOAuthConfigured()` is a simple string comparison, not a try/catch around a missing value.
+
+**Alternatives considered:**
+- Config file (`.claude-pets/config.json`) — adds file I/O and a new config format for a single value; env var is simpler and matches existing patterns.
+- Prompt for client ID on first contribute attempt — over-engineered for a developer tool; env vars are the expected configuration surface.
+- Remove the placeholder entirely and fail on missing env var — would break `import` for anyone who hasn't set the var, even if they never use the contribute flow.
+
+---
+
 ## 2026-05-11 — Bubble resize via a visible bottom-right grip, not native window resize
 
 **Context:** The pet bubble window is created with `resizable: false`, `frame: false`, `transparent: true` — so there was no way to resize it. Users tried dragging the corners and nothing happened. We needed a way to make long content (messages, permission summaries) more readable in-place without forcing the expand-window every time.
