@@ -1,5 +1,7 @@
 // Permission flow: approval requests, option buttons, deny form, keyboard shortcuts.
 
+import { bumpApprovalAndMaybeShow } from './coffee-modal.js';
+
 export function init(state) {
   const title = document.getElementById('title');
   const content = document.getElementById('content');
@@ -33,6 +35,9 @@ export function init(state) {
     queueHint.textContent = '';
     state.updatePetImage(state.workingState ? 'thinking' : 'idle');
     state.rerender();
+    if (choice === 'allow' || choice === 'allow_session') {
+      bumpApprovalAndMaybeShow();
+    }
   }
 
   window.agent.onRequest(({ requestId, message, content: body, options, pendingCount, diffData, summary }) => {

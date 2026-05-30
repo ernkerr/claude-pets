@@ -781,7 +781,12 @@ ipcMain.handle('pets:contribute', async (_evt, { petId }) => {
 });
 
 ipcMain.handle('shell:openExternal', (_evt, { url }) => {
-  if (url.startsWith('https://github.com/')) shell.openExternal(url);
+  if (
+    url.startsWith('https://github.com/') ||
+    url.startsWith('https://buymeacoffee.com/')
+  ) {
+    shell.openExternal(url);
+  }
 });
 
 function sweepOrphans() {

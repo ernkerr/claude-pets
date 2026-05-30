@@ -120,6 +120,16 @@
     <div id="pet-gallery" class="pet-gallery"></div>
   </div>
 
+  <!-- Buy Me a Coffee modal — shown once after the user gets clear value (10 approvals) -->
+  <div id="coffee-modal" class="coffee-backdrop">
+    <div class="coffee-card" role="dialog" aria-modal="true" aria-labelledby="coffee-title">
+      <button id="coffee-close" class="coffee-close" aria-label="Close">&times;</button>
+      <h2 id="coffee-title">enjoying your pet?</h2>
+      <p><strong>claude-pets</strong> is free and open source. if it's making your sessions nicer, you can buy me a coffee.</p>
+      <a id="coffee-link" class="coffee-link-btn" href="#" rel="noreferrer">&#9749; Buy me a coffee</a>
+    </div>
+  </div>
+
   <script type="module" src="renderer.js"></script>
 <script>lucide.createIcons();</script>
 </body>

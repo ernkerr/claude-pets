@@ -3,6 +3,7 @@
 import { init as initBubble } from './bubble.js';
 import { init as initPermissions } from './permissions.js';
 import { init as initEditor } from './pet-editor.js';
+import { init as initCoffee } from './coffee-modal.js';
 
 const { session } = window.agent;
 
@@ -114,3 +115,4 @@ resizeGrip.addEventListener('mousedown', (e) => {
 initBubble(state);
 initPermissions(state);
 initEditor(state);
+initCoffee();

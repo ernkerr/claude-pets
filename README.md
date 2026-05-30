@@ -107,6 +107,10 @@ Yes. Each `claude-pets` invocation spawns its own window and session. They casca
 
 `~/.claude-pets/` — `pets.json` for pet definitions, `images/` for uploaded files.
 
+## Support
+
+claude-pets is free and open source. If it's been useful, you can [buy me a coffee](https://buymeacoffee.com/ernkerr) — entirely optional, much appreciated. The app will gently nudge you toward this link once, after you've approved a handful of tool calls, then never again.
+
 ## How it works
 
 Two processes connected over HTTP on `localhost:47777`:

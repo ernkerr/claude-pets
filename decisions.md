@@ -4,6 +4,24 @@ A running log of design and architectural decisions for claude-pets, plus the re
 
 ---
 
+## 2026-05-29 — Buy Me a Coffee modal triggers after 10 approvals, in-window centered card
+
+**Context:** No support/tip link existed anywhere in the app or README. The neighboring `ascii-cam` project fires a "support your local dev" modal immediately after a successful export, but claude-pets has no equivalent moment of joy — sessions don't have a single "win" event.
+
+**Decision:** Show the modal exactly once, after the user has approved 10 tool calls in total (tracked across launches via `localStorage.coffeeApprovalCount`). Once dismissed (× button, backdrop click, Escape, or clicking through to buymeacoffee.com), `localStorage.coffeeModalSeen = 'true'` and it never appears again. Render as a centered card with a translucent backdrop sitting inside the existing pet bubble window (sibling of `#bubble` and `#pet-editor` in `index.html`), styled with the existing warm palette — not a separate Electron window, not the full-window-takeover pattern used by the pet editor.
+
+**Why:** Tying the trigger to value delivered (approvals) means the user has felt the app working before being asked to tip — not a launch-time banner. The threshold of 10 is high enough to filter out users who try the app and bounce, low enough to fire within the first real session. Centered card with backdrop matches the ascii-cam aesthetic the user explicitly referenced, while reusing the existing color variables keeps it visually consistent with the rest of the app. Keeping it as an in-window overlay (instead of a new BrowserWindow like the diff/expand viewers) is consistent with the prior call that small, lightweight UI shouldn't introduce new window infrastructure. URL allowlisting (`https://buymeacoffee.com/` added to the existing `shell:openExternal` handler) keeps the renderer from being able to open arbitrary URLs.
+
+**Alternatives considered:**
+- Trigger after N minutes of session time — time-based feels arbitrary; approval count maps directly to "you got value."
+- Trigger on Nth app launch — fires before the user has actually used the app, weaker signal.
+- Trigger when a session ends — only some users use the in-app End Session button (others Ctrl+C the terminal), so coverage is uneven.
+- Separate BrowserWindow popup like the diff viewer — overkill for a single CTA with two buttons.
+- Match ascii-cam's dark neon-green styling — clashes with claude-pets' warm off-white palette.
+- Skip localStorage and re-show every session — annoying; a single dismissal should be permanent.
+
+---
+
 ## 2026-05-12 — Encrypt GitHub tokens at rest with Electron safeStorage
 
 **Context:** The Contribute Pet flow stores a GitHub OAuth token at `~/.claude-pets/github-token` as plaintext with `0o600` permissions. QA flagged this as a medium-severity security issue — any process running as the same user can read the token, and it survives in cloud backups unencrypted.

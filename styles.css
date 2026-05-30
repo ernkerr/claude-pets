@@ -103,8 +103,8 @@ body::-webkit-scrollbar { display: none; }
   position: absolute;
   right: 3px;
   bottom: 3px;
-  width: 18px;
-  height: 18px;
+  width: 12px;
+  height: 12px;
   cursor: nwse-resize;
   opacity: 0.45;
   background-image:
@@ -745,4 +745,82 @@ body::-webkit-scrollbar { display: none; }
   background: #fff;
   outline: none;
   font-family: -apple-system, system-ui, sans-serif;
+}
+
+/* ---- Buy Me a Coffee modal ---- */
+.coffee-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 42, 38, 0.45);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: coffeeFadeIn 140ms ease-out;
+}
+.coffee-backdrop.show { display: flex; }
+.coffee-card {
+  position: relative;
+  width: min(240px, 100%);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 18px 16px;
+  box-shadow: 0 12px 32px rgba(44, 42, 38, 0.25);
+  animation: coffeePopIn 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.coffee-card h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.coffee-card p {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+.coffee-card strong { color: var(--accent); font-weight: 600; }
+.coffee-close {
+  -webkit-app-region: no-drag;
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.coffee-close:hover { color: var(--text); background: var(--pill-bg); }
+.coffee-link-btn {
+  -webkit-app-region: no-drag;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
+  padding: 9px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms;
+}
+.coffee-link-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+@keyframes coffeeFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes coffeePopIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
 }
