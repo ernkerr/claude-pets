@@ -7,14 +7,16 @@ const SEEN_KEY = 'coffeeModalSeen';
 const COUNT_KEY = 'coffeeApprovalCount';
 const THRESHOLD = 10;
 const COFFEE_URL = 'https://buymeacoffee.com/ernkerr';
+const PROJECTS_URL = 'https://erinkerr.me/projects';
 
-let modal, card, closeBtn, link;
+let modal, card, closeBtn, link, projectsLink;
 
 export function init() {
   modal = document.getElementById('coffee-modal');
   card = modal.querySelector('.coffee-card');
   closeBtn = document.getElementById('coffee-close');
   link = document.getElementById('coffee-link');
+  projectsLink = document.getElementById('coffee-projects');
 
   closeBtn.addEventListener('click', close);
   modal.addEventListener('click', (e) => {
@@ -24,6 +26,11 @@ export function init() {
   link.addEventListener('click', (e) => {
     e.preventDefault();
     window.agent.openExternal(COFFEE_URL);
+    close();
+  });
+  projectsLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.agent.openExternal(PROJECTS_URL);
     close();
   });
   document.addEventListener('keydown', (e) => {
