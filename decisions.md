@@ -4,6 +4,20 @@ A running log of design and architectural decisions for claude-pets, plus the re
 
 ---
 
+## 2026-06-08 — Remove the upstream "contribute pet" flow entirely before going public
+
+**Context:** Earlier work stripped the contribute-a-pet UI (the button in the pet editor, the preload bridge, and the README mention), but left the entire backend in place: `lib/github.mjs` (GitHub OAuth device flow → fork → branch → file upload → PR against `ernkerr/claude-pets`) plus ~130 lines of `github:*` / `pets:contribute` IPC handlers in `main.js`. Nothing in `preload.js` exposed any of it, so it was unreachable dead code. While prepping the repo to be public/forkable, this surfaced as confusing orphaned code that also hardcoded the maintainer's repo as the upstream PR target.
+
+**Decision:** Delete the feature wholesale — remove `lib/github.mjs`, the orphaned IPC handlers, and the now-unused `safeStorage` import from `main.js`. This supersedes the 2026-05-12 token-encryption decision below: with no token stored, there's nothing left to encrypt. The local **"bring your own pet"** feature (drop in your own images via the editor) is unaffected and remains the supported way for forkers to add pets.
+
+**Why:** A public fork-and-use repo shouldn't ship a half-wired contribution pipeline pointed at the original author's repo. Keeping dead code around invites confusion and accidental re-enablement. If a community-pet gallery is wanted later, it should be designed fresh as a deliberate feature (with its own auth/abuse story) rather than resurrected from this orphaned path.
+
+**Alternatives considered:**
+- Re-wire the existing flow and ship it — the OAuth/abuse/moderation story for accepting arbitrary image PRs isn't designed; not worth gating the public release on.
+- Leave the dead code in place — it's unreachable but confusing, and hardcodes the upstream repo; cleaner to remove.
+
+---
+
 ## 2026-05-29 — Buy Me a Coffee modal triggers after 10 approvals, in-window centered card
 
 **Context:** No support/tip link existed anywhere in the app or README. The neighboring `ascii-cam` project fires a "support your local dev" modal immediately after a successful export, but claude-pets has no equivalent moment of joy — sessions don't have a single "win" event.
