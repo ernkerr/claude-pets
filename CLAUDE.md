@@ -1,27 +1,20 @@
-## gstack (REQUIRED — global install)
+## gstack (optional — maintainer workflow)
 
-**Before doing ANY work, verify gstack is installed:**
+The maintainer uses [gstack](https://github.com/garrytan/gstack) for AI-assisted
+work in this repo. **It is not required to contribute** — you can build, test,
+and open PRs without it. If you happen to have it installed, the routing and
+skills below apply; if not, ignore this section and work normally.
+
+To install it (optional):
 
 ```bash
-test -d ~/.claude/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
+git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+cd ~/.claude/skills/gstack && ./setup --team
 ```
-
-If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
-
-> gstack is required for all AI-assisted work in this repo.
-> Install it:
-> ```bash
-> git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
-> cd ~/.claude/skills/gstack && ./setup --team
-> ```
-> Then restart your AI coding tool.
-
-Do not skip skills, ignore gstack errors, or work around missing gstack.
 
 ### Web browsing
 
-Use the `/browse` skill from gstack for all web browsing. **Never** use the
-`mcp__claude-in-chrome__*` tools.
+If gstack is installed, prefer its `/browse` skill for web browsing.
 
 ### Available gstack skills
 
@@ -35,9 +28,10 @@ Use the `/browse` skill from gstack for all web browsing. **Never** use the
 
 Use `~/.claude/skills/gstack/...` for gstack file paths (the global path).
 
-## Skill routing
+## Skill routing (when gstack is installed)
 
-When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+These routing rules apply only if the gstack skills above are available. When the
+user's request matches an available skill, invoke it via the Skill tool.
 
 Key routing rules:
 - Product ideas/brainstorming → invoke /office-hours

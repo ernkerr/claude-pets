@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, dialog, shell, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, shell } = require('electron');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
@@ -651,139 +651,11 @@ ipcMain.handle('pets:delete', async (_evt, { petId }) => {
   return ps.deletePet(petId);
 });
 
-// --- GitHub contribute IPC ---
-let github = null;
-let authPoller = null;
-
-async function getGitHub() {
-  if (!github) {
-    github = await import('./lib/github.mjs');
-    if (safeStorage.isEncryptionAvailable()) {
-      github.setEncryption(
-        (plaintext) => safeStorage.encryptString(plaintext),
-        (encrypted) => safeStorage.decryptString(encrypted),
-      );
-    }
-  }
-  return github;
-}
-
-ipcMain.handle('github:authStatus', async () => {
-  const gh = await getGitHub();
-  if (!gh.isOAuthConfigured()) {
-    return { authenticated: false, oauthMissing: true };
-  }
-  const token = gh.loadToken();
-  if (!token) return { authenticated: false };
-  const { valid, username } = await gh.validateToken(token);
-  if (!valid) { gh.clearToken(); return { authenticated: false }; }
-  return { authenticated: true, username };
-});
-
-ipcMain.handle('github:startAuth', async () => {
-  const gh = await getGitHub();
-  const flow = await gh.startDeviceFlow();
-  const poller = gh.pollForToken(flow.deviceCode, flow.interval);
-  authPoller = poller;
-  poller.promise
-    .then(() => { authPoller = null; })
-    .catch(() => { authPoller = null; });
-  return {
-    userCode: flow.userCode,
-    verificationUri: flow.verificationUri,
-  };
-});
-
-ipcMain.on('github:cancelAuth', () => {
-  if (authPoller) { authPoller.cancel(); authPoller = null; }
-});
-
-ipcMain.handle('github:waitForAuth', async () => {
-  if (!authPoller) return { authenticated: false };
-  try {
-    await authPoller.promise;
-    const gh = await getGitHub();
-    const token = gh.loadToken();
-    const user = await gh.getUser(token);
-    return { authenticated: true, username: user.login };
-  } catch {
-    return { authenticated: false };
-  }
-});
-
-ipcMain.handle('pets:contribute', async (_evt, { petId }) => {
-  const gh = await getGitHub();
-  const ps = await getPetStore();
-  const store = ps.loadStore();
-  const pet = store.pets.find((p) => p.id === petId);
-
-  if (!pet) return { success: false, error: 'Pet not found' };
-  if (pet.builtIn) return { success: false, error: 'Cannot contribute built-in pets' };
-  const hasAnyImage = Object.values(pet.states).some(Boolean);
-  if (!hasAnyImage) return { success: false, error: 'Pet needs at least one image' };
-
-  const token = gh.loadToken();
-  if (!token) return { success: false, error: 'Not authenticated' };
-
-  try {
-    const user = await gh.getUser(token);
-    const username = user.login;
-
-    // Fork (idempotent)
-    let forkName;
-    try {
-      forkName = await gh.forkRepo(token);
-    } catch {
-      forkName = `${username}/claude-pets`;
-    }
-
-    // Wait a moment for fork to be ready (GitHub can be slow)
-    await new Promise((r) => setTimeout(r, 2000));
-
-    // Get main branch SHA
-    const sha = await gh.getDefaultBranchSha(forkName, token);
-
-    // Create branch
-    const slug = pet.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'pet';
-    const branchName = `contribute/${slug}-${Date.now().toString(36)}`;
-    await gh.createBranch(forkName, branchName, sha, token);
-
-    // Upload images
-    const manifest = { name: pet.name, author: username, states: {} };
-    const commitMsg = `Add community pet: ${pet.name}`;
-
-    for (const [stateName, imgPath] of Object.entries(pet.states)) {
-      if (!imgPath) continue;
-      const ext = path.extname(imgPath).slice(1).toLowerCase();
-      const destName = stateName === 'responseNeeded' ? `response-needed.${ext}` : `${stateName}.${ext}`;
-      const content = fs.readFileSync(imgPath).toString('base64');
-      const fileDest = `assets/community/${slug}/${destName}`;
-      await gh.uploadFile(forkName, branchName, fileDest, content, commitMsg, token);
-      manifest.states[stateName] = destName;
-    }
-
-    // Upload pet.json
-    const manifestContent = Buffer.from(JSON.stringify(manifest, null, 2)).toString('base64');
-    await gh.uploadFile(forkName, branchName, `assets/community/${slug}/pet.json`, manifestContent, commitMsg, token);
-
-    // Create PR
-    const pr = await gh.createPR(
-      `${username}:${branchName}`,
-      `Add community pet: ${pet.name}`,
-      `Adds a new community pet **"${pet.name}"** with ${Object.keys(manifest.states).length} state(s).\n\nContributed via the claude-pets app.`,
-      token,
-    );
-
-    return { success: true, prUrl: pr.html_url, username };
-  } catch (err) {
-    return { success: false, error: err.message || 'Unknown error' };
-  }
-});
-
 ipcMain.handle('shell:openExternal', (_evt, { url }) => {
   if (
     url.startsWith('https://github.com/') ||
-    url.startsWith('https://buymeacoffee.com/')
+    url.startsWith('https://buymeacoffee.com/') ||
+    url.startsWith('https://erinkerr.me/')
   ) {
     shell.openExternal(url);
   }
